@@ -68,26 +68,30 @@ export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
     })
   );
 
-  // Round-robin across playlists, deduplicating by track id
+  // Pull from playlists in shuffled rounds so the order is unpredictable but
+  // each playlist still contributes equally within each round.
   const seen = new Set<string>();
   const queue: Song[] = [];
   const indices = new Array(pools.length).fill(0);
 
-  while (queue.length < lobby.settings.songCount) {
-    let added = false;
-    for (let i = 0; i < pools.length; i++) {
-      if (queue.length >= lobby.settings.songCount) break;
-      while (indices[i] < pools[i].length) {
-        const track = pools[i][indices[i]++];
-        if (!seen.has(track.id)) {
-          seen.add(track.id);
-          queue.push(track);
-          added = true;
-          break;
-        }
+  const rounds = Math.ceil(lobby.settings.songCount / Math.max(pools.length, 1)) + 1;
+  const deckOrder: number[] = [];
+  for (let r = 0; r < rounds; r++) {
+    deckOrder.push(...shuffle(pools.map((_, i) => i)));
+  }
+
+  for (const playlistIndex of deckOrder) {
+    if (queue.length >= lobby.settings.songCount) break;
+    const pool = pools[playlistIndex];
+    while (indices[playlistIndex] < pool.length) {
+      const track = pool[indices[playlistIndex]++];
+      if (!seen.has(track.id)) {
+        seen.add(track.id);
+        queue.push(track);
+        break;
       }
     }
-    if (!added) break; // all playlists exhausted
+    if (pools.every((p, i) => indices[i] >= p.length)) break;
   }
 
   return queue;

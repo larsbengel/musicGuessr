@@ -2,4 +2,9 @@
 - abbruch knopf
 - rejoin direkt song abspielen
 - mehr delay zu beginn
-- overview - show to which playlist it belongs
+- satzzeichen in namen :ac/dc
+- jahr release
+- filmmusik: film erraten
+- first round score not live
+-random playlist order ✓
+
