@@ -10,6 +10,7 @@ interface Props {
 
 export default function Chat({ messages, onSend, disabled }: Props) {
   const [input, setInput] = useState('');
+  const lastSent = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,8 +26,16 @@ export default function Chat({ messages, onSend, disabled }: Props) {
     e.preventDefault();
     const text = input.trim();
     if (!text) return;
+    lastSent.current = text;
     onSend(text);
     setInput('');
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowUp' && input === '' && lastSent.current) {
+      e.preventDefault();
+      setInput(lastSent.current);
+    }
   }
 
   return (
@@ -61,6 +70,7 @@ export default function Chat({ messages, onSend, disabled }: Props) {
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={disabled ? 'Waiting for next song...' : 'Type your guess...'}
           disabled={disabled}
           autoComplete="off"
