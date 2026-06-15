@@ -2,16 +2,10 @@ import axios, { AxiosResponse } from 'axios';
 import { Song, SpotifyPlaylist } from '../../../shared/types';
 
 // Deezer public API — no auth required, all tracks have 30s previews
-const API = 'https://api.deezer.com';
-
-export async function searchPlaylists(query: string, limit = 12): Promise<SpotifyPlaylist[]> {
-  const response = await axios.get(`${API}/search/playlist`, {
-    params: { q: query, limit },
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (response.data.data as any[]).map(mapPlaylist);
-}
+const deezer = axios.create({
+  baseURL: 'https://api.deezer.com',
+  headers: { 'Accept-Language': 'en' },
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapPlaylist(p: any): SpotifyPlaylist {
@@ -24,8 +18,14 @@ function mapPlaylist(p: any): SpotifyPlaylist {
   };
 }
 
+export async function searchPlaylists(query: string, limit = 12): Promise<SpotifyPlaylist[]> {
+  const response = await deezer.get('/search/playlist', { params: { q: query, limit } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (response.data.data as any[]).map(mapPlaylist);
+}
+
 export async function getFeaturedPlaylists(): Promise<SpotifyPlaylist[]> {
-  const response = await axios.get(`${API}/chart/0/playlists`, { params: { limit: 20 } });
+  const response = await deezer.get('/chart/0/playlists', { params: { limit: 20 } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (response.data.data as any[]).map(mapPlaylist);
 }
@@ -37,25 +37,25 @@ export interface DeezerGenre {
 }
 
 export async function getGenres(): Promise<DeezerGenre[]> {
-  const response = await axios.get(`${API}/genre`);
+  const response = await deezer.get('/genre');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (response.data.data as any[])
-    .filter((g) => g.id !== 0) // skip "All" meta-genre
+    .filter((g) => g.id !== 0)
     .map((g) => ({ id: g.id as number, name: g.name as string, imageUrl: (g.picture_medium ?? null) as string | null }));
 }
 
 export async function getGenrePlaylists(genreId: number): Promise<SpotifyPlaylist[]> {
-  const response = await axios.get(`${API}/genre/${genreId}/playlists`, { params: { limit: 20 } });
+  const response = await deezer.get(`/genre/${genreId}/playlists`, { params: { limit: 20 } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (response.data.data as any[]).map(mapPlaylist);
 }
 
 export async function getPlaylistTracks(playlistId: string): Promise<Song[]> {
   const songs: Song[] = [];
-  let url: string | null = `${API}/playlist/${playlistId}/tracks?limit=100`;
+  let url: string | null = '/playlist/' + playlistId + '/tracks?limit=100';
 
   while (url) {
-    const response: AxiosResponse = await axios.get(url);
+    const response: AxiosResponse = await deezer.get(url);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const track of response.data.data as any[]) {
