@@ -35,6 +35,7 @@ export interface LobbyInfo {
 export interface GameSettings {
   songCount: number;
   songDuration: number; // ms
+  guessMode: { title: boolean; artist: boolean };
 }
 
 export interface SongStartPayload {

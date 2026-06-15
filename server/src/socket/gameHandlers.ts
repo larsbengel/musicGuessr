@@ -22,7 +22,8 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       text,
       song,
       game.titleGuessers.has(socket.id),
-      game.artistGuessers.has(socket.id)
+      game.artistGuessers.has(socket.id),
+      lobby.settings.guessMode
     );
 
     let pointsGained = 0;

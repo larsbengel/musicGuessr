@@ -60,6 +60,7 @@ export function createLobby(): string {
     settings: {
       songCount: 10,
       songDuration: 20000,
+      guessMode: { title: true, artist: true },
     },
     game: null,
   };

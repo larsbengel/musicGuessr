@@ -162,6 +162,14 @@ export default function Lobby() {
     socket.emit('lobby:update-settings', { songCount: count });
   }
 
+  function toggleGuessMode(category: 'title' | 'artist') {
+    if (!lobby) return;
+    const current = lobby.settings.guessMode;
+    const next = { ...current, [category]: !current[category] };
+    if (!next.title && !next.artist) return; // keep at least one on
+    socket.emit('lobby:update-settings', { guessMode: { [category]: !current[category] } });
+  }
+
   function startGame() {
     setStarting(true);
     setError('');
@@ -273,7 +281,7 @@ export default function Lobby() {
           </ul>
         </div>
 
-        {isHost && (
+        {isHost ? (
           <div className="card" style={{ maxWidth: '100%' }}>
             <p className="section-title">Songs per game</p>
             <select
@@ -284,6 +292,42 @@ export default function Lobby() {
                 <option key={n} value={n}>{n} songs</option>
               ))}
             </select>
+            <p className="section-title" style={{ marginTop: 16 }}>What to guess</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(['title', 'artist'] as const).map((cat) => {
+                const active = lobby.settings.guessMode[cat];
+                const isLast = active && !(['title', 'artist'] as const).filter((c) => c !== cat).some((c) => lobby.settings.guessMode[c]);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleGuessMode(cat)}
+                    disabled={isLast}
+                    style={{
+                      flex: 1,
+                      padding: '8px 0',
+                      borderRadius: 6,
+                      border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'var(--surface-2)',
+                      color: active ? 'var(--accent)' : 'var(--text-dim)',
+                      fontWeight: active ? 600 : 400,
+                      fontSize: 13,
+                      cursor: isLast ? 'default' : 'pointer',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="card" style={{ maxWidth: '100%' }}>
+            <p className="section-title">Settings</p>
+            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs</p>
+            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
+              Guess: {['title', 'artist'].filter((c) => lobby.settings.guessMode[c as 'title' | 'artist']).join(' & ')}
+            </p>
           </div>
         )}
 

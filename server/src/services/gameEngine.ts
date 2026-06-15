@@ -36,11 +36,12 @@ export function checkGuess(
   guess: string,
   song: Song,
   playerHasTitle: boolean,
-  playerHasArtist: boolean
+  playerHasArtist: boolean,
+  guessMode: { title: boolean; artist: boolean }
 ): { title: boolean; artist: boolean } {
   return {
-    title: !playerHasTitle && isMatch(guess, song.title),
-    artist: !playerHasArtist && song.artists.some((a) => isMatch(guess, a)),
+    title: guessMode.title && !playerHasTitle && isMatch(guess, song.title),
+    artist: guessMode.artist && !playerHasArtist && song.artists.some((a) => isMatch(guess, a)),
   };
 }
 
