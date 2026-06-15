@@ -4,6 +4,7 @@ import {
   ChatMessage,
   GameCurrentState,
   GameOverPayload,
+  GuessCategory,
   GuessResultPayload,
   PlayerScore,
   Song,
