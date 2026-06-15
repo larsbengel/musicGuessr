@@ -60,6 +60,11 @@ export default function Lobby() {
         prev ? { ...prev, playlists: prev.playlists.filter((p) => p.id !== playlistId) } : prev
       );
     });
+    socket.on('lobby:playlist-updated', (playlist: SpotifyPlaylist) => {
+      setLobby((prev) =>
+        prev ? { ...prev, playlists: prev.playlists.map((p) => p.id === playlist.id ? playlist : p) } : prev
+      );
+    });
     socket.on('lobby:error', ({ message }: { message: string }) => {
       setError(message);
       setStarting(false);
@@ -73,6 +78,7 @@ export default function Lobby() {
       socket.off('lobby:state');
       socket.off('lobby:playlist-added');
       socket.off('lobby:playlist-removed');
+      socket.off('lobby:playlist-updated');
       socket.off('lobby:error');
       socket.off('game:started');
     };
@@ -310,7 +316,11 @@ export default function Lobby() {
                   }
                   <div className="playlist-card-info">
                     <div className="playlist-card-name">{p.name}</div>
-                    <div className="playlist-card-owner">{p.trackCount} tracks</div>
+                    <div className="playlist-card-owner">
+                    {p.playableCount !== undefined
+                      ? `${p.playableCount} playable`
+                      : <span style={{ opacity: 0.5 }}>checking...</span>}
+                  </div>
                   </div>
                   {isHost && (
                     <button className="remove-btn" onClick={() => removePlaylist(p.id)}>×</button>

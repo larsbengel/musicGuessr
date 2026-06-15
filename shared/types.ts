@@ -11,6 +11,7 @@ export interface SpotifyPlaylist {
   imageUrl: string | null;
   trackCount: number;
   owner: string;
+  playableCount?: number; // resolved async after adding to lobby
 }
 
 export interface Song {

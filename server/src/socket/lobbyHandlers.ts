@@ -8,6 +8,7 @@ import {
   deleteLobby,
 } from '../state/lobbyStore';
 import { startGame, cleanupLobby } from '../game/gameLoop';
+import { getPlaylistTracks } from '../services/spotify';
 
 export function setupLobbyHandlers(io: Server, socket: Socket): void {
   socket.on(
@@ -116,6 +117,15 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       lobby.playlists.push(playlist);
       io.to(lobby.code).emit('lobby:playlist-added', playlist);
       callback?.({});
+
+      // Fetch playable count in background and notify clients when ready
+      getPlaylistTracks(playlist.id).then((tracks) => {
+        const idx = lobby.playlists.findIndex((p) => p.id === playlist.id);
+        if (idx !== -1) {
+          lobby.playlists[idx].playableCount = tracks.length;
+          io.to(lobby.code).emit('lobby:playlist-updated', lobby.playlists[idx]);
+        }
+      }).catch(() => null);
     }
   );
 
