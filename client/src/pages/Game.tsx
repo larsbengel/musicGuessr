@@ -57,13 +57,12 @@ export default function Game() {
     localStorage.setItem('mg_volume', String(volume));
   }, [volume, ready]);
 
-  function playSong(previewUrl: string, duration: number) {
+  function playSong(previewUrl: string, duration: number, startOffsetSec = 0) {
     if (!audioRef.current) return;
     audioRef.current.src = previewUrl;
-    audioRef.current.currentTime = 0;
+    audioRef.current.currentTime = startOffsetSec;
     audioRef.current.play().catch(() => null);
 
-    songStartTime.current = Date.now();
     if (progressInterval.current) clearInterval(progressInterval.current);
     progressInterval.current = setInterval(() => {
       const elapsed = Date.now() - songStartTime.current;
@@ -84,7 +83,8 @@ export default function Game() {
       audioRef.current!.src = '';
       setReady(true);
       if (pendingPreviewUrl.current) {
-        playSong(pendingPreviewUrl.current, pendingDuration.current);
+        const elapsedSec = (Date.now() - songStartTime.current) / 1000;
+        playSong(pendingPreviewUrl.current, pendingDuration.current, elapsedSec);
         pendingPreviewUrl.current = null;
       }
     }).catch(() => setReady(true));
@@ -288,28 +288,27 @@ export default function Game() {
     );
   }
 
-  if (!ready) {
-    return (
-      <div className="page">
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 48 }}>🎵</div>
-          <h2 style={{ fontSize: 24 }}>Ready to play?</h2>
-          <p style={{ color: 'var(--text-dim)' }}>
-            {phase === 'playing'
-              ? 'Song in progress — click to resume audio'
-              : `${totalSongs > 0 ? `${totalSongs} songs` : 'Game starting'} · click to enable audio`}
-          </p>
-          <button className="btn-primary" style={{ fontSize: 16, padding: '14px 36px' }} onClick={handleReady}>
-            {phase === 'playing' ? 'Resume' : "I'm Ready!"}
-          </button>
-        </div>
-        <audio ref={audioRef} />
-      </div>
-    );
-  }
-
   return (
     <div className="game-wrapper">
+      {!ready && (
+        <div
+          onClick={handleReady}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(10, 10, 14, 0.82)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, pointerEvents: 'none' }}>
+            <div style={{ fontSize: 44 }}>🎵</div>
+            <h2 style={{ fontSize: 22, margin: 0 }}>
+              {phase === 'playing' ? 'Song in progress' : 'Game starting soon'}
+            </h2>
+            <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: 14 }}>Click anywhere to enable audio</p>
+          </div>
+        </div>
+      )}
       <div className="game-topbar">
         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>MusicGuessr</span>
         <div className="volume-control">

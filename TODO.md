@@ -7,4 +7,4 @@
 - filmmusik: film erraten
 - first round score not live
 - close guess
-
+- rejoin broken?
