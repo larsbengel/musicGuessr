@@ -37,7 +37,14 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     player.score = 0;
   }
 
-  io.to(lobby.code).emit('game:started', { totalSongs: songs.length });
+  const initialScores: PlayerScore[] = Array.from(lobby.players.values()).map((p) => ({
+    playerId: p.id,
+    username: p.username,
+    score: 0,
+    gained: 0,
+  }));
+
+  io.to(lobby.code).emit('game:started', { totalSongs: songs.length, initialScores });
 
   setTimeout(() => playNextSong(io, lobby.code), GAME_START_DELAY);
 }

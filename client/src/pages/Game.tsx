@@ -98,10 +98,11 @@ export default function Game() {
       });
     }
 
-    socket.on('game:started', ({ totalSongs: t }: { totalSongs: number }) => {
+    socket.on('game:started', ({ totalSongs: t, initialScores }: { totalSongs: number; initialScores: PlayerScore[] }) => {
       setTotalSongs(t);
       setPhase('waiting');
       setMessages([]);
+      setScores(initialScores);
     });
 
     socket.on('game:song-start', (payload: SongStartPayload) => {
