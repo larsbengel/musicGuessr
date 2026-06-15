@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LobbyInfo, SpotifyPlaylist } from 'shared/types';
+import { LobbyInfo, PlayerScore, SpotifyPlaylist } from 'shared/types';
 import { useGame } from '../context/GameContext';
 import socket, { playerId } from '../socket';
 
@@ -69,9 +69,8 @@ export default function Lobby() {
       setError(message);
       setStarting(false);
     });
-    socket.on('game:started', ({ totalSongs }: { totalSongs: number }) => {
-      void totalSongs;
-      navigate(`/game/${code}`);
+    socket.on('game:started', ({ initialScores }: { totalSongs: number; initialScores: PlayerScore[] }) => {
+      navigate(`/game/${code}`, { state: { initialScores } });
     });
 
     return () => {

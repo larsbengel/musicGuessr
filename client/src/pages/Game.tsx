@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ChatMessage,
   GameCurrentState,
@@ -20,13 +20,16 @@ type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
 export default function Game() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [phase, setPhase] = useState<Phase>('waiting');
   const [ready, setReady] = useState(false);
   const [totalSongs, setTotalSongs] = useState(0);
   const [songIndex, setSongIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [scores, setScores] = useState<PlayerScore[]>([]);
+  const [scores, setScores] = useState<PlayerScore[]>(
+    (location.state as { initialScores?: PlayerScore[] } | null)?.initialScores ?? []
+  );
   const [revealedSong, setRevealedSong] = useState<Song | null>(null);
   const [myTitle, setMyTitle] = useState<string | null>(null);
   const [myArtists, setMyArtists] = useState<string[] | null>(null);
