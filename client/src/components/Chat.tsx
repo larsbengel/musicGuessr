@@ -44,7 +44,10 @@ export default function Chat({ messages, onSend, disabled }: Props) {
         {messages.map((msg, i) => {
           const color = playerColor(msg.username);
           if (msg.system) {
-            const cats = msg.correct ?? [];
+            const raw = msg.correct;
+            const cats: string[] = Array.isArray(raw) ? raw
+              : raw === 'both' ? ['title', 'artist']
+              : raw ? [raw] : [];
             const label = cats.length === 1 ? `the ${cats[0]}` : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
             const cssKey = cats.length === 1 ? cats[0] : 'both';
             return (

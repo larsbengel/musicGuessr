@@ -13,6 +13,7 @@ import {
 import socket, { playerId } from '../socket';
 import Chat from '../components/Chat';
 import Scoreboard from '../components/Scoreboard';
+import Logo from '../components/Logo';
 import { playerColor } from '../utils/playerColor';
 
 type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
@@ -200,8 +201,11 @@ export default function Game() {
   }
 
   function handleGuessResult(result: GuessResultPayload) {
-    if (result.correct.length > 0) {
-      const cats = result.correct;
+    const raw = result.correct as GuessCategory[] | string;
+    const cats: GuessCategory[] = Array.isArray(raw) ? raw
+      : raw === 'both' ? ['title', 'artist']
+      : raw ? [raw as GuessCategory] : [];
+    if (cats.length > 0) {
       const label = cats.length === 1 ? cats[0] : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
       setGuessToast(`+${result.points} pts · ${label}`);
@@ -310,7 +314,10 @@ export default function Game() {
         </div>
       )}
       <div className="game-topbar">
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>MusicGuessr</span>
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <Logo size={26} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>MusicGuessr</span>
+        </a>
         <div className="volume-control">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {volume === 0

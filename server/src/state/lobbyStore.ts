@@ -90,6 +90,9 @@ export function lobbyToInfo(lobby: LobbyState): LobbyInfo {
     playlists: lobby.playlists,
     state: lobby.state,
     hostId: lobby.hostId,
-    settings: lobby.settings,
+    settings: {
+      ...lobby.settings,
+      guessMode: lobby.settings.guessMode ?? { title: true, artist: true, year: false },
+    },
   };
 }

@@ -167,7 +167,7 @@ export default function Lobby() {
 
   function toggleGuessMode(category: 'title' | 'artist' | 'year') {
     if (!lobby) return;
-    const current = lobby.settings.guessMode;
+    const current = lobby.settings.guessMode ?? { title: true, artist: true, year: false };
     const next = { ...current, [category]: !current[category] };
     if (!next.title && !next.artist) return; // keep at least one on
     socket.emit('lobby:update-settings', { guessMode: { [category]: !current[category] } });
@@ -313,8 +313,9 @@ export default function Lobby() {
             <p className="section-title" style={{ marginTop: 16 }}>What to guess</p>
             <div style={{ display: 'flex', gap: 8 }}>
               {(['title', 'artist', 'year'] as const).map((cat) => {
-                const active = lobby.settings.guessMode[cat];
-                const isLast = active && !(['title', 'artist', 'year'] as const).filter((c) => c !== cat).some((c) => lobby.settings.guessMode[c]);
+                const guessMode = lobby.settings.guessMode ?? { title: true, artist: true, year: false };
+                const active = guessMode[cat];
+                const isLast = active && !(['title', 'artist', 'year'] as const).filter((c) => c !== cat).some((c) => guessMode[c]);
                 return (
                   <button
                     key={cat}
@@ -344,7 +345,7 @@ export default function Lobby() {
             <p className="section-title">Settings</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs · {lobby.settings.songDuration / 1000}s rounds</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
-              Guess: {(['title', 'artist', 'year'] as const).filter((c) => lobby.settings.guessMode[c]).join(' & ')}
+              Guess: {(['title', 'artist', 'year'] as const).filter((c) => (lobby.settings.guessMode ?? { title: true, artist: true, year: false })[c]).join(' & ')}
             </p>
           </div>
         )}

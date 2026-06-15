@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import socket from '../socket';
+import Logo from '../components/Logo';
 
 export default function Home() {
   const { username, setUsername } = useGame();
@@ -50,13 +51,16 @@ export default function Home() {
 
   return (
     <div className="page">
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <h1 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
-          Music<span style={{ color: 'var(--accent)' }}>Guessr</span>
-        </h1>
-        <p style={{ color: 'var(--text-dim)', marginTop: 8 }}>
-          Guess songs with friends
-        </p>
+      <div style={{ textAlign: 'center', marginBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <Logo size={88} />
+        <div>
+          <h1 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
+            Music<span style={{ color: 'var(--accent)' }}>Guessr</span>
+          </h1>
+          <p style={{ color: 'var(--text-dim)', marginTop: 6 }}>
+            Guess songs with friends
+          </p>
+        </div>
       </div>
 
       <div className="card">
