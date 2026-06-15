@@ -162,6 +162,10 @@ export default function Lobby() {
     socket.emit('lobby:update-settings', { songCount: count });
   }
 
+  function updateSongDuration(seconds: number) {
+    socket.emit('lobby:update-settings', { songDuration: seconds * 1000 });
+  }
+
   function toggleGuessMode(category: 'title' | 'artist' | 'year') {
     if (!lobby) return;
     const current = lobby.settings.guessMode;
@@ -292,6 +296,21 @@ export default function Lobby() {
                 <option key={n} value={n}>{n} songs</option>
               ))}
             </select>
+            <p className="section-title" style={{ marginTop: 16 }}>
+              Round length <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{lobby.settings.songDuration / 1000}s</span>
+            </p>
+            <input
+              type="range"
+              min={5}
+              max={30}
+              step={5}
+              value={lobby.settings.songDuration / 1000}
+              onChange={(e) => updateSongDuration(Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
+              <span>5s</span><span>30s</span>
+            </div>
             <p className="section-title" style={{ marginTop: 16 }}>What to guess</p>
             <div style={{ display: 'flex', gap: 8 }}>
               {(['title', 'artist', 'year'] as const).map((cat) => {
@@ -324,7 +343,7 @@ export default function Lobby() {
         ) : (
           <div className="card" style={{ maxWidth: '100%' }}>
             <p className="section-title">Settings</p>
-            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs</p>
+            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs · {lobby.settings.songDuration / 1000}s rounds</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
               Guess: {(['title', 'artist', 'year'] as const).filter((c) => lobby.settings.guessMode[c]).join(' & ')}
             </p>

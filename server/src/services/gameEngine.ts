@@ -66,9 +66,10 @@ function shuffle<T>(arr: T[]): T[] {
 
 export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
   // Fetch and shuffle each playlist independently
+  const fetchYears = lobby.settings.guessMode.year;
   const pools: Song[][] = await Promise.all(
     lobby.playlists.map(async (pl) => {
-      const tracks = await getPlaylistTracks(pl.id);
+      const tracks = await getPlaylistTracks(pl.id, fetchYears);
       return shuffle(tracks.map((t) => ({ ...t, playlistName: pl.name })));
     })
   );

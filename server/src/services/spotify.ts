@@ -56,32 +56,53 @@ export async function getGenrePlaylists(genreName: string): Promise<SpotifyPlayl
   return (response.data.data as any[]).map(mapPlaylist);
 }
 
-export async function getPlaylistTracks(playlistId: string): Promise<Song[]> {
-  const songs: Song[] = [];
+export async function getPlaylistTracks(playlistId: string, fetchYears = false): Promise<Song[]> {
+  type RawTrack = { id: string; title: string; artist: string; albumId: string; albumArt: string | null; previewUrl: string };
+  const rawTracks: RawTrack[] = [];
   let url: string | null = '/playlist/' + playlistId + '/tracks?limit=100';
 
   while (url) {
     const response: AxiosResponse = await deezer.get(url);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const track of response.data.data as any[]) {
       if (!track.preview) continue;
-      const releaseYear = track.release_date
-        ? parseInt((track.release_date as string).substring(0, 4), 10) || undefined
-        : undefined;
-      songs.push({
+      rawTracks.push({
         id: String(track.id),
         title: track.title as string,
-        artists: [track.artist.name as string],
+        artist: track.artist.name as string,
+        albumId: String(track.album.id),
         albumArt: (track.album?.cover_medium as string) ?? null,
         previewUrl: track.preview as string,
-        year: releaseYear,
       });
     }
-
     url = (response.data.next as string) || null;
-    if (songs.length >= 200) break;
+    if (rawTracks.length >= 200) break;
   }
 
-  return songs;
+  // Fetch album release years in batches (release_date is not in the playlist tracks response)
+  const albumYears = new Map<string, number>();
+  if (fetchYears) {
+    const uniqueAlbumIds = [...new Set(rawTracks.map((r) => r.albumId))];
+    const BATCH = 10;
+    for (let i = 0; i < uniqueAlbumIds.length; i += BATCH) {
+      await Promise.all(
+        uniqueAlbumIds.slice(i, i + BATCH).map(async (albumId) => {
+          try {
+            const resp = await deezer.get(`/album/${albumId}`);
+            const year = parseInt((resp.data.release_date as string)?.substring(0, 4), 10);
+            if (!isNaN(year)) albumYears.set(albumId, year);
+          } catch { /* skip — year stays undefined for this album */ }
+        })
+      );
+    }
+  }
+
+  return rawTracks.map((r) => ({
+    id: r.id,
+    title: r.title,
+    artists: [r.artist],
+    albumArt: r.albumArt,
+    previewUrl: r.previewUrl,
+    year: albumYears.get(r.albumId),
+  }));
 }
