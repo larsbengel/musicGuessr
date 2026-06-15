@@ -27,6 +27,9 @@ export default function Game() {
   const [progress, setProgress] = useState(0);
   const [scores, setScores] = useState<PlayerScore[]>([]);
   const [revealedSong, setRevealedSong] = useState<Song | null>(null);
+  const [myTitle, setMyTitle] = useState<string | null>(null);
+  const [myArtists, setMyArtists] = useState<string[] | null>(null);
+  const [myAlbumArt, setMyAlbumArt] = useState<string | null | undefined>(undefined);
   const [guessToast, setGuessToast] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [finalScores, setFinalScores] = useState<PlayerScore[]>([]);
@@ -47,7 +50,7 @@ export default function Game() {
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
     localStorage.setItem('mg_volume', String(volume));
-  }, [volume]);
+  }, [volume, ready]);
 
   function playSong(previewUrl: string, duration: number) {
     if (!audioRef.current) return;
@@ -104,6 +107,9 @@ export default function Game() {
       setSongIndex(payload.songIndex);
       setTotalSongs(payload.totalSongs);
       setRevealedSong(null);
+      setMyTitle(null);
+      setMyArtists(null);
+      setMyAlbumArt(undefined);
       setPhase('playing');
       setProgress(0);
       songStartTime.current = Date.now();
@@ -190,6 +196,9 @@ export default function Game() {
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
       setGuessToast(`+${result.points} pts · ${label}`);
       toastTimeout.current = setTimeout(() => setGuessToast(null), 2000);
+      if (result.revealedTitle !== undefined) setMyTitle(result.revealedTitle);
+      if (result.revealedArtists !== undefined) setMyArtists(result.revealedArtists);
+      if ('revealedAlbumArt' in result) setMyAlbumArt(result.revealedAlbumArt);
     }
   }
 
@@ -311,23 +320,25 @@ export default function Game() {
 
         <div style={{ position: 'relative' }}>
           {phase === 'revealing' && revealedSong?.albumArt ? (
-            <img
-              src={revealedSong.albumArt}
-              alt="album art"
-              className="album-art fade-in"
-              style={{ display: 'block' }}
-            />
+            <img src={revealedSong.albumArt} alt="album art" className="album-art fade-in" style={{ display: 'block' }} />
+          ) : myAlbumArt ? (
+            <img src={myAlbumArt} alt="album art" className="album-art fade-in" style={{ display: 'block' }} />
           ) : (
             <div className="album-art" style={{ fontSize: 60 }}>🎵</div>
           )}
         </div>
 
-        {phase === 'revealing' && revealedSong && (
+        {phase === 'revealing' && revealedSong ? (
           <div className="song-reveal fade-in">
             <div className="song-title">{revealedSong.title}</div>
             <div className="song-artist">{revealedSong.artists.join(', ')}</div>
           </div>
-        )}
+        ) : (myTitle || myArtists) ? (
+          <div className="song-reveal">
+            {myTitle && <div className="song-title">{myTitle}</div>}
+            {myArtists && <div className="song-artist" style={{ color: 'var(--text-dim)' }}>{myArtists.join(', ')}</div>}
+          </div>
+        ) : null}
 
         <div className="progress-bar-wrap" style={{ width: 320 }}>
           <div

@@ -2,3 +2,4 @@
 - abbruch knopf
 - rejoin direkt song abspielen
 - mehr delay zu beginn
+- overview - show to which playlist it belongs

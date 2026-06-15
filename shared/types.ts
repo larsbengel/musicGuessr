@@ -58,6 +58,9 @@ export interface GuessResultPayload {
   correct: 'title' | 'artist' | 'both' | null;
   points: number;
   totalScore: number;
+  revealedTitle?: string;
+  revealedArtists?: string[];
+  revealedAlbumArt?: string | null; // null = song has no art; undefined = not yet unlocked
 }
 
 export interface ChatMessage {

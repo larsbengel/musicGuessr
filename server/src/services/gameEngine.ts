@@ -60,18 +60,35 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
-  const allSongs: Song[] = [];
-  const seen = new Set<string>();
+  // Fetch and shuffle each playlist independently
+  const pools: Song[][] = await Promise.all(
+    lobby.playlists.map(async (pl) => {
+      const tracks = await getPlaylistTracks(pl.id);
+      return shuffle(tracks);
+    })
+  );
 
-  for (const playlist of lobby.playlists) {
-    const tracks = await getPlaylistTracks(playlist.id);
-    for (const track of tracks) {
-      if (!seen.has(track.id)) {
-        seen.add(track.id);
-        allSongs.push(track);
+  // Round-robin across playlists, deduplicating by track id
+  const seen = new Set<string>();
+  const queue: Song[] = [];
+  const indices = new Array(pools.length).fill(0);
+
+  while (queue.length < lobby.settings.songCount) {
+    let added = false;
+    for (let i = 0; i < pools.length; i++) {
+      if (queue.length >= lobby.settings.songCount) break;
+      while (indices[i] < pools[i].length) {
+        const track = pools[i][indices[i]++];
+        if (!seen.has(track.id)) {
+          seen.add(track.id);
+          queue.push(track);
+          added = true;
+          break;
+        }
       }
     }
+    if (!added) break; // all playlists exhausted
   }
 
-  return shuffle(allSongs).slice(0, lobby.settings.songCount);
+  return queue;
 }

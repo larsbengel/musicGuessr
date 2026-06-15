@@ -55,10 +55,15 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       player.score += pointsGained;
       game.songScores.set(socket.id, (game.songScores.get(socket.id) ?? 0) + pointsGained);
 
+      const playerHasTitle = game.titleGuessers.has(socket.id);
+      const playerHasArtist = game.artistGuessers.has(socket.id);
       socket.emit('game:guess-result', {
         correct,
         points: pointsGained,
         totalScore: player.score,
+        revealedTitle: playerHasTitle ? song.title : undefined,
+        revealedArtists: playerHasArtist ? song.artists : undefined,
+        revealedAlbumArt: (playerHasTitle && playerHasArtist) ? song.albumArt : undefined,
       });
 
       // Broadcast a system announcement (no guess text) so everyone sees who scored what
