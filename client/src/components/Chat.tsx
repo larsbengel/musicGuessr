@@ -6,10 +6,9 @@ interface Props {
   messages: ChatMessage[];
   onSend: (text: string) => void;
   disabled: boolean;
-  myId: string;
 }
 
-export default function Chat({ messages, onSend, disabled, myId }: Props) {
+export default function Chat({ messages, onSend, disabled }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

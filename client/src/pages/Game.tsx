@@ -365,7 +365,6 @@ export default function Game() {
         messages={messages}
         onSend={sendGuess}
         disabled={phase !== 'playing'}
-        myId={socket.id ?? ''}
       />
 
       <audio ref={audioRef} preload="auto" />
