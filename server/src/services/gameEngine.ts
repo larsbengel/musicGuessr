@@ -11,11 +11,25 @@ function normalize(s: string): string {
     .trim();
 }
 
+function stripExtras(s: string): string {
+  return s
+    .replace(/\s*\(.*?\)/g, '')   // (feat. ...), (Taylor's Version), (Remix), etc.
+    .replace(/\s*\[.*?\]/g, '')   // [Radio Edit], etc.
+    .replace(/\s*[-–—]\s*(feat|ft|remix|version|edit|remaster|live).*/i, '')
+    .replace(/\s*(feat|ft)\.\s.*/i, '')  // feat. without parens
+    .trim();
+}
+
 function isMatch(guess: string, target: string): boolean {
   const g = normalize(guess);
   const t = normalize(target);
+  const tStripped = normalize(stripExtras(target));
   if (!g || t.length < 2) return false;
-  return g === t || (t.length >= 3 && (g.includes(t) || t.includes(g)));
+  if (g === t) return true;
+  if (tStripped && g === tStripped) return true;
+  if (t.length >= 3 && g.includes(t)) return true;
+  if (tStripped.length >= 3 && g.includes(tStripped)) return true;
+  return false;
 }
 
 export function checkGuess(

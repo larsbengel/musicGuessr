@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, FormEvent, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { ChatMessage } from 'shared/types';
 
 interface Props {
@@ -8,22 +8,18 @@ interface Props {
   myId: string;
 }
 
-export interface ChatHandle {
-  focus: () => void;
-}
-
-const Chat = forwardRef<ChatHandle, Props>(function Chat({ messages, onSend, disabled, myId }, ref) {
+export default function Chat({ messages, onSend, disabled, myId }: Props) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => inputRef.current?.focus(),
-  }));
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!disabled) inputRef.current?.focus();
+  }, [disabled]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -78,6 +74,4 @@ const Chat = forwardRef<ChatHandle, Props>(function Chat({ messages, onSend, dis
       </form>
     </div>
   );
-});
-
-export default Chat;
+}

@@ -11,7 +11,7 @@ import {
   SongStartPayload,
 } from 'shared/types';
 import socket, { playerId } from '../socket';
-import Chat, { ChatHandle } from '../components/Chat';
+import Chat from '../components/Chat';
 import Scoreboard from '../components/Scoreboard';
 
 type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
@@ -37,7 +37,6 @@ export default function Game() {
     return saved !== null ? parseFloat(saved) : 0.8;
   });
 
-  const chatRef = useRef<ChatHandle>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -108,7 +107,6 @@ export default function Game() {
       setPhase('playing');
       setProgress(0);
       songStartTime.current = Date.now();
-      chatRef.current?.focus();
 
       if (ready) {
         playSong(payload.previewUrl, payload.duration);
@@ -344,7 +342,6 @@ export default function Game() {
       </div>
 
       <Chat
-        ref={chatRef}
         messages={messages}
         onSend={sendGuess}
         disabled={phase !== 'playing'}
