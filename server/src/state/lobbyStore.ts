@@ -1,0 +1,93 @@
+import { LobbyInfo, Player, Song, SpotifyPlaylist } from '../../../shared/types';
+
+export interface PlayerState {
+  id: string;       // socket.id — changes on reconnect
+  playerId: string; // stable client-generated UUID
+  username: string;
+  score: number;
+  isHost: boolean;
+}
+
+export interface GameState {
+  songs: Song[];
+  currentSongIndex: number;
+  songStartTime: number;
+  titleGuessedBy: string | null;
+  artistGuessedBy: string | null;
+  songTimer: NodeJS.Timeout | null;
+  betweenSongs: boolean;
+  songScores: Map<string, number>;
+}
+
+export interface LobbyState {
+  code: string;
+  players: Map<string, PlayerState>;    // socket.id → PlayerState
+  playerIds: Map<string, string>;       // stable playerId → current socket.id
+  playlists: SpotifyPlaylist[];
+  state: 'waiting' | 'playing' | 'ended';
+  hostId: string;
+  settings: {
+    songCount: number;
+    songDuration: number; // ms
+  };
+  game: GameState | null;
+}
+
+const lobbies = new Map<string, LobbyState>();
+
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateCode(): string {
+  let code: string;
+  do {
+    code = Array.from(
+      { length: 6 },
+      () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
+    ).join('');
+  } while (lobbies.has(code));
+  return code;
+}
+
+export function createLobby(): string {
+  const code = generateCode();
+  const lobby: LobbyState = {
+    code,
+    players: new Map(),
+    playerIds: new Map(),
+    playlists: [],
+    state: 'waiting',
+    hostId: '',
+    settings: {
+      songCount: 10,
+      songDuration: 20000,
+    },
+    game: null,
+  };
+  lobbies.set(code, lobby);
+  return code;
+}
+
+export function getLobby(code: string): LobbyState | undefined {
+  return lobbies.get(code);
+}
+
+export function deleteLobby(code: string): void {
+  lobbies.delete(code);
+}
+
+export function lobbyToInfo(lobby: LobbyState): LobbyInfo {
+  const players: Player[] = Array.from(lobby.players.values()).map((p) => ({
+    id: p.id,
+    username: p.username,
+    score: p.score,
+    isHost: p.isHost,
+  }));
+  return {
+    code: lobby.code,
+    players,
+    playlists: lobby.playlists,
+    state: lobby.state,
+    hostId: lobby.hostId,
+    settings: lobby.settings,
+  };
+}
