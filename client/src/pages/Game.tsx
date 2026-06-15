@@ -264,7 +264,10 @@ export default function Game() {
                     }
                     <div className="songs-played-info">
                       <div className="songs-played-title">{song.title}</div>
-                      <div className="songs-played-artist">{song.artists.join(', ')}</div>
+                      <div className="songs-played-artist">
+                        {song.artists.join(', ')}
+                        {song.year && <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>· {song.year}</span>}
+                      </div>
                       {song.playlistName && (
                         <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: playerColor(song.playlistName), flexShrink: 0, display: 'inline-block' }} />
