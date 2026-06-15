@@ -25,7 +25,10 @@ export async function searchPlaylists(query: string, limit = 12): Promise<Spotif
 }
 
 export async function getFeaturedPlaylists(): Promise<SpotifyPlaylist[]> {
-  const response = await deezer.get('/chart/0/playlists', { params: { limit: 20 } });
+  // Use search instead of regional chart — chart returns country-specific (IP-based) content
+  const response = await deezer.get('/search/playlist', {
+    params: { q: 'top hits', limit: 20, order: 'RANKING' },
+  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (response.data.data as any[]).map(mapPlaylist);
 }
@@ -44,8 +47,11 @@ export async function getGenres(): Promise<DeezerGenre[]> {
     .map((g) => ({ id: g.id as number, name: g.name as string, imageUrl: (g.picture_medium ?? null) as string | null }));
 }
 
-export async function getGenrePlaylists(genreId: number): Promise<SpotifyPlaylist[]> {
-  const response = await deezer.get(`/genre/${genreId}/playlists`, { params: { limit: 20 } });
+export async function getGenrePlaylists(genreName: string): Promise<SpotifyPlaylist[]> {
+  // Search by genre name so results are global rather than regional
+  const response = await deezer.get('/search/playlist', {
+    params: { q: genreName, limit: 20, order: 'RANKING' },
+  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (response.data.data as any[]).map(mapPlaylist);
 }

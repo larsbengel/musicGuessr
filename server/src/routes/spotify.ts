@@ -39,13 +39,13 @@ router.get('/genres', async (_req, res) => {
 });
 
 router.get('/genre/:id/playlists', async (req, res) => {
-  const genreId = parseInt(req.params.id, 10);
-  if (isNaN(genreId)) {
-    res.status(400).json({ error: 'Invalid genre id' });
+  const name = req.query.name as string;
+  if (!name?.trim()) {
+    res.status(400).json({ error: 'Genre name is required' });
     return;
   }
   try {
-    const playlists = await getGenrePlaylists(genreId);
+    const playlists = await getGenrePlaylists(name.trim());
     res.json({ playlists });
   } catch (err) {
     console.error('Genre playlists error:', err);

@@ -109,7 +109,7 @@ export default function Lobby() {
     setSearchResults([]);
     setBrowseResults([]);
     setSearching(true);
-    fetch(`/api/spotify/genre/${genre.id}/playlists`)
+    fetch(`/api/spotify/genre/${genre.id}/playlists?name=${encodeURIComponent(genre.name)}`)
       .then((r) => r.json())
       .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
       .catch(() => setBrowseResults([]))
