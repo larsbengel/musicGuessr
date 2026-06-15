@@ -65,6 +65,8 @@ export interface ChatMessage {
   username: string;
   text: string;
   timestamp: number;
+  system?: boolean;
+  correct?: 'title' | 'artist' | 'both';
 }
 
 export interface GameOverPayload {

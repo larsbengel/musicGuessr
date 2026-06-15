@@ -36,17 +36,27 @@ const Chat = forwardRef<ChatHandle, Props>(function Chat({ messages, onSend, dis
   return (
     <div className="chat-panel">
       <div className="chat-messages">
-        {messages.map((msg, i) => (
-          <div key={i} className="chat-msg">
-            <span
-              className="chat-username"
-              style={msg.playerId === myId ? { color: 'var(--accent)' } : undefined}
-            >
-              {msg.username}
-            </span>
-            <span>{msg.text}</span>
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          if (msg.system) {
+            const label = msg.correct === 'both' ? 'title & artist' : `the ${msg.correct}`;
+            return (
+              <div key={i} className={`chat-msg chat-system chat-system-${msg.correct}`}>
+                <strong>{msg.username}</strong> guessed {label}
+              </div>
+            );
+          }
+          return (
+            <div key={i} className="chat-msg">
+              <span
+                className="chat-username"
+                style={msg.playerId === myId ? { color: 'var(--accent)' } : undefined}
+              >
+                {msg.username}
+              </span>
+              <span>{msg.text}</span>
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 

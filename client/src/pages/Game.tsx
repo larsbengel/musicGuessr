@@ -52,7 +52,6 @@ export default function Game() {
 
   function playSong(previewUrl: string, duration: number) {
     if (!audioRef.current) return;
-    audioRef.current.volume = volume;
     audioRef.current.src = previewUrl;
     audioRef.current.currentTime = 0;
     audioRef.current.play().catch(() => null);

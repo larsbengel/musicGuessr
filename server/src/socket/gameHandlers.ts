@@ -60,7 +60,16 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         points: pointsGained,
         totalScore: player.score,
       });
-      // Correct guesses are NOT broadcast to chat — only the guesser gets private feedback
+
+      // Broadcast a system announcement (no guess text) so everyone sees who scored what
+      io.to(code).emit('game:chat', {
+        playerId: socket.id,
+        username: player.username,
+        text: '',
+        timestamp: Date.now(),
+        system: true,
+        correct,
+      } satisfies ChatMessage);
       return;
     }
 
