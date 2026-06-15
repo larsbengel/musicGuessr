@@ -13,6 +13,7 @@ import {
 import socket, { playerId } from '../socket';
 import Chat from '../components/Chat';
 import Scoreboard from '../components/Scoreboard';
+import { playerColor } from '../utils/playerColor';
 
 type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
 
@@ -137,6 +138,12 @@ export default function Game() {
       if (progressInterval.current) clearInterval(progressInterval.current);
     });
 
+    socket.on('game:score-update', (update: { playerId: string; score: number; gained: number }) => {
+      setScores((prev) => prev.map((s) =>
+        s.playerId === update.playerId ? { ...s, score: update.score, gained: update.gained } : s
+      ));
+    });
+
     socket.on('game:chat', (msg: ChatMessage) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -173,6 +180,7 @@ export default function Game() {
       socket.off('game:started');
       socket.off('game:song-start');
       socket.off('game:song-end');
+      socket.off('game:score-update');
       socket.off('game:chat');
       socket.off('game:over');
       socket.off('lobby:reset');
@@ -186,11 +194,6 @@ export default function Game() {
   }
 
   function handleGuessResult(result: GuessResultPayload) {
-    setScores((prev) =>
-      prev.map((s) =>
-        s.playerId === socket.id ? { ...s, score: result.totalScore } : s
-      )
-    );
     if (result.correct) {
       const label = result.correct === 'both' ? 'title & artist' : result.correct;
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
@@ -257,6 +260,12 @@ export default function Game() {
                     <div className="songs-played-info">
                       <div className="songs-played-title">{song.title}</div>
                       <div className="songs-played-artist">{song.artists.join(', ')}</div>
+                      {song.playlistName && (
+                        <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: playerColor(song.playlistName), flexShrink: 0, display: 'inline-block' }} />
+                          <span style={{ fontSize: 10, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{song.playlistName}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

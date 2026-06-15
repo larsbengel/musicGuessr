@@ -19,6 +19,7 @@ export interface Song {
   artists: string[];
   albumArt: string | null;
   previewUrl: string;
+  playlistName?: string;
 }
 
 export interface LobbyInfo {

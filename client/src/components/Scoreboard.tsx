@@ -1,4 +1,5 @@
 import { PlayerScore } from 'shared/types';
+import { playerColor } from '../utils/playerColor';
 
 interface Props {
   scores: PlayerScore[];
@@ -23,7 +24,10 @@ export default function Scoreboard({ scores, myId }: Props) {
             <span className={`score-rank ${i === 0 ? 'top' : ''}`}>
               {RANK_ICONS[i] ?? `${i + 1}.`}
             </span>
-            <span className="score-username">{s.username}</span>
+            <span className="score-username">
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: playerColor(s.username), marginRight: 6, flexShrink: 0 }} />
+              {s.username}
+            </span>
             {s.gained > 0 && (
               <span className="score-gained">+{s.gained}</span>
             )}

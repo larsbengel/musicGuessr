@@ -66,6 +66,13 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         revealedAlbumArt: (playerHasTitle && playerHasArtist) ? song.albumArt : undefined,
       });
 
+      // Broadcast live score update to all players in the room
+      io.to(code).emit('game:score-update', {
+        playerId: socket.id,
+        score: player.score,
+        gained: game.songScores.get(socket.id) ?? 0,
+      });
+
       // Broadcast a system announcement (no guess text) so everyone sees who scored what
       io.to(code).emit('game:chat', {
         playerId: socket.id,

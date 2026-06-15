@@ -64,7 +64,7 @@ export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
   const pools: Song[][] = await Promise.all(
     lobby.playlists.map(async (pl) => {
       const tracks = await getPlaylistTracks(pl.id);
-      return shuffle(tracks);
+      return shuffle(tracks.map((t) => ({ ...t, playlistName: pl.name })));
     })
   );
 

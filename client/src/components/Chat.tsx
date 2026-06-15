@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, FormEvent } from 'react';
 import { ChatMessage } from 'shared/types';
+import { playerColor } from '../utils/playerColor';
 
 interface Props {
   messages: ChatMessage[];
@@ -33,20 +34,18 @@ export default function Chat({ messages, onSend, disabled, myId }: Props) {
     <div className="chat-panel">
       <div className="chat-messages">
         {messages.map((msg, i) => {
+          const color = playerColor(msg.username);
           if (msg.system) {
             const label = msg.correct === 'both' ? 'title & artist' : `the ${msg.correct}`;
             return (
               <div key={i} className={`chat-msg chat-system chat-system-${msg.correct}`}>
-                <strong>{msg.username}</strong> guessed {label}
+                <strong style={{ color }}>{msg.username}</strong> guessed {label}
               </div>
             );
           }
           return (
             <div key={i} className="chat-msg">
-              <span
-                className="chat-username"
-                style={msg.playerId === myId ? { color: 'var(--accent)' } : undefined}
-              >
+              <span className="chat-username" style={{ color }}>
                 {msg.username}
               </span>
               <span>{msg.text}</span>
