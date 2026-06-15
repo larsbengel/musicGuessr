@@ -35,10 +35,12 @@ export default function Chat({ messages, onSend, disabled }: Props) {
         {messages.map((msg, i) => {
           const color = playerColor(msg.username);
           if (msg.system) {
-            const label = msg.correct === 'both' ? 'title & artist' : `the ${msg.correct}`;
+            const cats = msg.correct ?? [];
+            const label = cats.length === 1 ? `the ${cats[0]}` : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
+            const cssKey = cats.length === 1 ? cats[0] : 'both';
             return (
-              <div key={i} className={`chat-msg chat-system chat-system-${msg.correct}`}>
-                <strong style={{ color }}>{msg.username}</strong> guessed {label}
+              <div key={i} className={`chat-msg chat-system chat-system-${cssKey}`}>
+                <strong style={{ color }}>{msg.username}</strong> guessed {label}!
               </div>
             );
           }

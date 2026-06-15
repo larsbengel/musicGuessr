@@ -144,7 +144,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
 
   socket.on(
     'lobby:update-settings',
-    (settings: { songCount?: number; guessMode?: { title?: boolean; artist?: boolean } }, callback?: (res: { error?: string }) => void) => {
+    (settings: { songCount?: number; guessMode?: { title?: boolean; artist?: boolean; year?: boolean } }, callback?: (res: { error?: string }) => void) => {
       const lobby = getPlayerLobby(socket);
       if (!lobby) { callback?.({ error: 'Not in a lobby' }); return; }
       if (lobby.hostId !== socket.id) { callback?.({ error: 'Only the host can change settings' }); return; }

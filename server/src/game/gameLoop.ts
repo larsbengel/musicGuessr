@@ -27,6 +27,7 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     songStartTime: 0,
     titleGuessers: new Set(),
     artistGuessers: new Set(),
+    yearGuessers: new Set(),
     songTimer: null,
     betweenSongs: true,
     songScores: new Map(),
@@ -64,6 +65,7 @@ function playNextSong(io: Server, code: string): void {
   lobby.game.songStartTime = Date.now();
   lobby.game.titleGuessers = new Set();
   lobby.game.artistGuessers = new Set();
+  lobby.game.yearGuessers = new Set();
   lobby.game.betweenSongs = false;
   lobby.game.songScores = new Map();
 

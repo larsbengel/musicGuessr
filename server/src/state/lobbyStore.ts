@@ -14,6 +14,7 @@ export interface GameState {
   songStartTime: number;
   titleGuessers: Set<string>;   // socket IDs that already scored the title this song
   artistGuessers: Set<string>;  // socket IDs that already scored the artist this song
+  yearGuessers: Set<string>;    // socket IDs that already scored the year this song
   songTimer: NodeJS.Timeout | null;
   betweenSongs: boolean;
   songScores: Map<string, number>;
@@ -60,7 +61,7 @@ export function createLobby(): string {
     settings: {
       songCount: 10,
       songDuration: 20000,
-      guessMode: { title: true, artist: true },
+      guessMode: { title: true, artist: true, year: false },
     },
     game: null,
   };

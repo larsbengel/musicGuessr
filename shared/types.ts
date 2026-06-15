@@ -20,6 +20,7 @@ export interface Song {
   artists: string[];
   albumArt: string | null;
   previewUrl: string;
+  year?: number;
   playlistName?: string;
 }
 
@@ -35,7 +36,7 @@ export interface LobbyInfo {
 export interface GameSettings {
   songCount: number;
   songDuration: number; // ms
-  guessMode: { title: boolean; artist: boolean };
+  guessMode: { title: boolean; artist: boolean; year: boolean };
 }
 
 export interface SongStartPayload {
@@ -57,13 +58,16 @@ export interface SongEndPayload {
   scores: PlayerScore[];
 }
 
+export type GuessCategory = 'title' | 'artist' | 'year';
+
 export interface GuessResultPayload {
-  correct: 'title' | 'artist' | 'both' | null;
+  correct: GuessCategory[];
   points: number;
   totalScore: number;
   revealedTitle?: string;
   revealedArtists?: string[];
   revealedAlbumArt?: string | null; // null = song has no art; undefined = not yet unlocked
+  revealedYear?: number;
 }
 
 export interface ChatMessage {
@@ -72,7 +76,7 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   system?: boolean;
-  correct?: 'title' | 'artist' | 'both';
+  correct?: GuessCategory[];
 }
 
 export interface GameOverPayload {

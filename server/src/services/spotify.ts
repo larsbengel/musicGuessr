@@ -66,12 +66,16 @@ export async function getPlaylistTracks(playlistId: string): Promise<Song[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const track of response.data.data as any[]) {
       if (!track.preview) continue;
+      const releaseYear = track.release_date
+        ? parseInt((track.release_date as string).substring(0, 4), 10) || undefined
+        : undefined;
       songs.push({
         id: String(track.id),
         title: track.title as string,
         artists: [track.artist.name as string],
         albumArt: (track.album?.cover_medium as string) ?? null,
         previewUrl: track.preview as string,
+        year: releaseYear,
       });
     }
 

@@ -37,11 +37,15 @@ export function checkGuess(
   song: Song,
   playerHasTitle: boolean,
   playerHasArtist: boolean,
-  guessMode: { title: boolean; artist: boolean }
-): { title: boolean; artist: boolean } {
+  playerHasYear: boolean,
+  guessMode: { title: boolean; artist: boolean; year: boolean }
+): { title: boolean; artist: boolean; year: boolean } {
+  const trimmed = guess.trim();
+  const yearGuess = /^\d{4}$/.test(trimmed) ? parseInt(trimmed, 10) : null;
   return {
     title: guessMode.title && !playerHasTitle && isMatch(guess, song.title),
     artist: guessMode.artist && !playerHasArtist && song.artists.some((a) => isMatch(guess, a)),
+    year: guessMode.year && !playerHasYear && yearGuess !== null && song.year !== undefined && yearGuess === song.year,
   };
 }
 

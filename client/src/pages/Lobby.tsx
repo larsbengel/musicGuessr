@@ -162,7 +162,7 @@ export default function Lobby() {
     socket.emit('lobby:update-settings', { songCount: count });
   }
 
-  function toggleGuessMode(category: 'title' | 'artist') {
+  function toggleGuessMode(category: 'title' | 'artist' | 'year') {
     if (!lobby) return;
     const current = lobby.settings.guessMode;
     const next = { ...current, [category]: !current[category] };
@@ -294,9 +294,9 @@ export default function Lobby() {
             </select>
             <p className="section-title" style={{ marginTop: 16 }}>What to guess</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              {(['title', 'artist'] as const).map((cat) => {
+              {(['title', 'artist', 'year'] as const).map((cat) => {
                 const active = lobby.settings.guessMode[cat];
-                const isLast = active && !(['title', 'artist'] as const).filter((c) => c !== cat).some((c) => lobby.settings.guessMode[c]);
+                const isLast = active && !(['title', 'artist', 'year'] as const).filter((c) => c !== cat).some((c) => lobby.settings.guessMode[c]);
                 return (
                   <button
                     key={cat}
@@ -326,7 +326,7 @@ export default function Lobby() {
             <p className="section-title">Settings</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
-              Guess: {['title', 'artist'].filter((c) => lobby.settings.guessMode[c as 'title' | 'artist']).join(' & ')}
+              Guess: {(['title', 'artist', 'year'] as const).filter((c) => lobby.settings.guessMode[c]).join(' & ')}
             </p>
           </div>
         )}

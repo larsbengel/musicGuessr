@@ -6,5 +6,5 @@
 - jahr release
 - filmmusik: film erraten
 - first round score not live
--random playlist order ✓
+- close guess
 

@@ -31,6 +31,7 @@ export default function Game() {
   const [myTitle, setMyTitle] = useState<string | null>(null);
   const [myArtists, setMyArtists] = useState<string[] | null>(null);
   const [myAlbumArt, setMyAlbumArt] = useState<string | null | undefined>(undefined);
+  const [myYear, setMyYear] = useState<number | null>(null);
   const [guessToast, setGuessToast] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [finalScores, setFinalScores] = useState<PlayerScore[]>([]);
@@ -112,6 +113,7 @@ export default function Game() {
       setMyTitle(null);
       setMyArtists(null);
       setMyAlbumArt(undefined);
+      setMyYear(null);
       setPhase('playing');
       setProgress(0);
       songStartTime.current = Date.now();
@@ -195,14 +197,16 @@ export default function Game() {
   }
 
   function handleGuessResult(result: GuessResultPayload) {
-    if (result.correct) {
-      const label = result.correct === 'both' ? 'title & artist' : result.correct;
+    if (result.correct.length > 0) {
+      const cats = result.correct;
+      const label = cats.length === 1 ? cats[0] : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
       setGuessToast(`+${result.points} pts · ${label}`);
       toastTimeout.current = setTimeout(() => setGuessToast(null), 2000);
       if (result.revealedTitle !== undefined) setMyTitle(result.revealedTitle);
       if (result.revealedArtists !== undefined) setMyArtists(result.revealedArtists);
       if ('revealedAlbumArt' in result) setMyAlbumArt(result.revealedAlbumArt);
+      if (result.revealedYear !== undefined) setMyYear(result.revealedYear);
     }
   }
 
@@ -342,11 +346,13 @@ export default function Game() {
           <div className="song-reveal fade-in">
             <div className="song-title">{revealedSong.title}</div>
             <div className="song-artist">{revealedSong.artists.join(', ')}</div>
+            {revealedSong.year && <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{revealedSong.year}</div>}
           </div>
-        ) : (myTitle || myArtists) ? (
+        ) : (myTitle || myArtists || myYear) ? (
           <div className="song-reveal">
             {myTitle && <div className="song-title">{myTitle}</div>}
             {myArtists && <div className="song-artist" style={{ color: 'var(--text-dim)' }}>{myArtists.join(', ')}</div>}
+            {myYear && <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{myYear}</div>}
           </div>
         ) : null}
 
