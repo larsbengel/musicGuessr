@@ -65,12 +65,6 @@ export interface ChatMessage {
   username: string;
   text: string;
   timestamp: number;
-  correct?: 'title' | 'artist' | 'both';
-}
-
-export interface GuessedPayload {
-  type: 'title' | 'artist' | 'both';
-  byUsername: string;
 }
 
 export interface GameOverPayload {
@@ -84,7 +78,5 @@ export interface GameCurrentState {
   previewUrl: string;
   elapsedMs: number;
   duration: number;
-  titleGuessedBy: string | null;
-  artistGuessedBy: string | null;
   scores: PlayerScore[];
 }

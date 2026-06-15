@@ -10,13 +10,44 @@ export async function searchPlaylists(query: string, limit = 12): Promise<Spotif
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (response.data.data as any[]).map((p) => ({
+  return (response.data.data as any[]).map(mapPlaylist);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPlaylist(p: any): SpotifyPlaylist {
+  return {
     id: String(p.id),
-    name: p.title as string,
-    imageUrl: (p.picture_medium as string) ?? null,
-    trackCount: (p.nb_tracks as number) ?? 0,
-    owner: (p.creator?.name as string) ?? 'Unknown',
-  }));
+    name: (p.title ?? p.name) as string,
+    imageUrl: (p.picture_medium ?? p.picture ?? null) as string | null,
+    trackCount: (p.nb_tracks ?? 0) as number,
+    owner: (p.user?.name ?? p.creator?.name ?? 'Unknown') as string,
+  };
+}
+
+export async function getFeaturedPlaylists(): Promise<SpotifyPlaylist[]> {
+  const response = await axios.get(`${API}/chart/0/playlists`, { params: { limit: 20 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (response.data.data as any[]).map(mapPlaylist);
+}
+
+export interface DeezerGenre {
+  id: number;
+  name: string;
+  imageUrl: string | null;
+}
+
+export async function getGenres(): Promise<DeezerGenre[]> {
+  const response = await axios.get(`${API}/genre`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (response.data.data as any[])
+    .filter((g) => g.id !== 0) // skip "All" meta-genre
+    .map((g) => ({ id: g.id as number, name: g.name as string, imageUrl: (g.picture_medium ?? null) as string | null }));
+}
+
+export async function getGenrePlaylists(genreId: number): Promise<SpotifyPlaylist[]> {
+  const response = await axios.get(`${API}/genre/${genreId}/playlists`, { params: { limit: 20 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (response.data.data as any[]).map(mapPlaylist);
 }
 
 export async function getPlaylistTracks(playlistId: string): Promise<Song[]> {

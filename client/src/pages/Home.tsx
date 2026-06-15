@@ -24,7 +24,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/lobby', { method: 'POST' });
       const { code } = await res.json() as { code: string };
-      sessionStorage.setItem('mg_username', username.trim());
+      localStorage.setItem('mg_username', username.trim());
       ensureConnected();
       navigate(`/lobby/${code}`);
     } catch {
@@ -39,7 +39,7 @@ export default function Home() {
     const code = joinCode.trim().toUpperCase();
     if (!username.trim()) { setError('Enter a username first'); return; }
     if (code.length !== 6) { setError('Lobby code must be 6 characters'); return; }
-    sessionStorage.setItem('mg_username', username.trim());
+    localStorage.setItem('mg_username', username.trim());
     ensureConnected();
     navigate(`/lobby/${code}`);
   }

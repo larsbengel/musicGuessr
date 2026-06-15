@@ -4,6 +4,8 @@ import { LobbyInfo, SpotifyPlaylist } from 'shared/types';
 import { useGame } from '../context/GameContext';
 import socket, { playerId } from '../socket';
 
+interface Genre { id: number; name: string; }
+
 export default function Lobby() {
   const { code } = useParams<{ code: string }>();
   const { username, setUsername } = useGame();
@@ -15,12 +17,28 @@ export default function Lobby() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SpotifyPlaylist[]>([]);
   const [searching, setSearching] = useState(false);
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<Genre | null>(null);
+  const [browseResults, setBrowseResults] = useState<SpotifyPlaylist[]>([]);
   const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isHost = lobby?.hostId === socket.id;
   const myId = socket.id;
+
+  // Load genres and featured playlists once
+  useEffect(() => {
+    fetch('/api/spotify/genres')
+      .then((r) => r.json())
+      .then((d: { genres: Genre[] }) => setGenres(d.genres))
+      .catch(() => null);
+
+    fetch('/api/spotify/featured')
+      .then((r) => r.json())
+      .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
+      .catch(() => null);
+  }, []);
 
   // Socket setup — only runs once we have a username
   useEffect(() => {
@@ -76,6 +94,28 @@ export default function Lobby() {
     };
   }, [code]);
 
+  function selectGenre(genre: Genre) {
+    if (selectedGenre?.id === genre.id) {
+      // deselect — go back to featured
+      setSelectedGenre(null);
+      fetch('/api/spotify/featured')
+        .then((r) => r.json())
+        .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
+        .catch(() => null);
+      return;
+    }
+    setSelectedGenre(genre);
+    setSearchQuery('');
+    setSearchResults([]);
+    setBrowseResults([]);
+    setSearching(true);
+    fetch(`/api/spotify/genre/${genre.id}/playlists`)
+      .then((r) => r.json())
+      .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
+      .catch(() => setBrowseResults([]))
+      .finally(() => setSearching(false));
+  }
+
   function handleSearch(e: FormEvent) {
     e.preventDefault();
     doSearch(searchQuery);
@@ -93,6 +133,7 @@ export default function Lobby() {
 
   function handleSearchInput(value: string) {
     setSearchQuery(value);
+    if (value.trim()) setSelectedGenre(null);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (value.trim().length > 1) {
       searchTimeout.current = setTimeout(() => doSearch(value), 500);
@@ -283,39 +324,70 @@ export default function Lobby() {
         <div className="card" style={{ maxWidth: '100%' }}>
             <p className="section-title">Add Playlists</p>
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder="Search Spotify playlists..."
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
-              />
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  placeholder="Search playlists..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  style={{ paddingRight: searchQuery ? 32 : undefined }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', padding: 0, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', borderRadius: '50%' }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
               <button type="submit" className="btn-secondary" style={{ width: 'auto', whiteSpace: 'nowrap' }}>
                 Search
               </button>
             </form>
 
-            {searching && <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>Searching...</p>}
-
-            {searchResults.length > 0 && (
-              <div className="search-results">
-                {searchResults.map((p) => (
-                  <div
-                    key={p.id}
-                    className="search-result-item"
-                    onClick={() => addPlaylist(p)}
+            {genres.length > 0 && !searchQuery && (
+              <div className="genre-chips">
+                {genres.map((g) => (
+                  <button
+                    key={g.id}
+                    className={`genre-chip ${selectedGenre?.id === g.id ? 'active' : ''}`}
+                    onClick={() => selectGenre(g)}
                   >
-                    {p.imageUrl
-                      ? <img src={p.imageUrl} alt={p.name} />
-                      : <div style={{ width: 40, height: 40, background: 'var(--surface-3)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🎵</div>
-                    }
-                    <div className="search-result-info">
-                      <div className="search-result-name">{p.name}</div>
-                      <div className="search-result-owner">by {p.owner} · {p.trackCount} tracks</div>
-                    </div>
-                    <span style={{ color: 'var(--accent)', fontSize: 20, flexShrink: 0 }}>+</span>
-                  </div>
+                    {g.name}
+                  </button>
                 ))}
               </div>
             )}
+
+            {searching && <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>Loading...</p>}
+
+            {(() => {
+              const results = searchQuery ? searchResults : browseResults;
+              const label = searchQuery ? null : selectedGenre ? selectedGenre.name : 'Featured';
+              return results.length > 0 ? (
+                <>
+                  {label && <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 10 }}>{label}</p>}
+                  <div className="search-results">
+                    {results.map((p) => (
+                      <div key={p.id} className="search-result-item" onClick={() => addPlaylist(p)}>
+                        {p.imageUrl
+                          ? <img src={p.imageUrl} alt={p.name} />
+                          : <div style={{ width: 40, height: 40, background: 'var(--surface-3)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🎵</div>
+                        }
+                        <div className="search-result-info">
+                          <div className="search-result-name">{p.name}</div>
+                          <div className="search-result-owner">by {p.owner} · {p.trackCount} tracks</div>
+                        </div>
+                        <span style={{ color: 'var(--accent)', fontSize: 20, flexShrink: 0 }}>+</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null;
+            })()}
         </div>
       </div>
     </div>

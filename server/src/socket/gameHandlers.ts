@@ -2,7 +2,6 @@ import { Server, Socket } from 'socket.io';
 import { ChatMessage } from '../../../shared/types';
 import { getLobby } from '../state/lobbyStore';
 import { checkGuess, calculatePoints } from '../services/gameEngine';
-import { advanceSongIfComplete } from '../game/gameLoop';
 
 export function setupGameHandlers(io: Server, socket: Socket): void {
   socket.on('game:guess', (text: string) => {
@@ -22,27 +21,33 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
     const { title: titleHit, artist: artistHit } = checkGuess(
       text,
       song,
-      game.titleGuessedBy !== null,
-      game.artistGuessedBy !== null
+      game.titleGuessers.has(socket.id),
+      game.artistGuessers.has(socket.id)
     );
 
     let pointsGained = 0;
     let correct: 'title' | 'artist' | 'both' | undefined;
 
+    const firstTitle = game.titleGuessers.size === 0;
+    const firstArtist = game.artistGuessers.size === 0;
+
     if (titleHit && artistHit) {
       const titlePts = calculatePoints(50, elapsed, lobby.settings.songDuration);
       const artistPts = calculatePoints(50, elapsed, lobby.settings.songDuration);
-      pointsGained = titlePts + artistPts;
-      game.titleGuessedBy = socket.id;
-      game.artistGuessedBy = socket.id;
+      pointsGained = Math.round(titlePts * (firstTitle ? 1.5 : 1))
+                   + Math.round(artistPts * (firstArtist ? 1.5 : 1));
+      game.titleGuessers.add(socket.id);
+      game.artistGuessers.add(socket.id);
       correct = 'both';
     } else if (titleHit) {
-      pointsGained = calculatePoints(50, elapsed, lobby.settings.songDuration);
-      game.titleGuessedBy = socket.id;
+      const pts = calculatePoints(50, elapsed, lobby.settings.songDuration);
+      pointsGained = Math.round(pts * (firstTitle ? 1.5 : 1));
+      game.titleGuessers.add(socket.id);
       correct = 'title';
     } else if (artistHit) {
-      pointsGained = calculatePoints(50, elapsed, lobby.settings.songDuration);
-      game.artistGuessedBy = socket.id;
+      const pts = calculatePoints(50, elapsed, lobby.settings.songDuration);
+      pointsGained = Math.round(pts * (firstArtist ? 1.5 : 1));
+      game.artistGuessers.add(socket.id);
       correct = 'artist';
     }
 
@@ -55,26 +60,17 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         points: pointsGained,
         totalScore: player.score,
       });
-
-      io.to(code).emit('game:guessed', {
-        type: correct,
-        byUsername: player.username,
-      });
+      // Correct guesses are NOT broadcast to chat — only the guesser gets private feedback
+      return;
     }
 
-    // Broadcast to all as chat (masked when not correct)
+    // Wrong guesses appear in chat for everyone
     const chatMsg: ChatMessage = {
       playerId: socket.id,
       username: player.username,
       text,
       timestamp: Date.now(),
-      correct,
     };
     io.to(code).emit('game:chat', chatMsg);
-
-    // If both title and artist are now guessed, end song early
-    if (game.titleGuessedBy && game.artistGuessedBy) {
-      advanceSongIfComplete(io, code);
-    }
   });
 }

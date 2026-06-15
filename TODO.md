@@ -1,0 +1,4 @@
+- Titel + Artist in selbem Versuch
+- abbruch knopf
+- rejoin direkt song abspielen
+- mehr delay zu beginn

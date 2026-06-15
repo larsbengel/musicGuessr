@@ -25,8 +25,8 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     songs,
     currentSongIndex: -1,
     songStartTime: 0,
-    titleGuessedBy: null,
-    artistGuessedBy: null,
+    titleGuessers: new Set(),
+    artistGuessers: new Set(),
     songTimer: null,
     betweenSongs: true,
     songScores: new Map(),
@@ -55,8 +55,8 @@ function playNextSong(io: Server, code: string): void {
 
   const song = lobby.game.songs[lobby.game.currentSongIndex];
   lobby.game.songStartTime = Date.now();
-  lobby.game.titleGuessedBy = null;
-  lobby.game.artistGuessedBy = null;
+  lobby.game.titleGuessers = new Set();
+  lobby.game.artistGuessers = new Set();
   lobby.game.betweenSongs = false;
   lobby.game.songScores = new Map();
 
@@ -110,15 +110,6 @@ function endGame(io: Server, lobby: LobbyState): void {
     finalScores,
     songs: lobby.game?.songs ?? [],
   });
-}
-
-// Called externally when title/artist are both locked to skip to reveal early
-export function advanceSongIfComplete(io: Server, code: string): void {
-  const lobby = getLobby(code);
-  if (!lobby?.game || lobby.game.betweenSongs) return;
-  if (lobby.game.titleGuessedBy && lobby.game.artistGuessedBy) {
-    endSong(io, code);
-  }
 }
 
 export function cleanupLobby(io: Server, code: string): void {

@@ -36,14 +36,20 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
 
           if (lobby.hostId === existingSocketId) lobby.hostId = socket.id;
 
-          // Update game score map key if mid-game
+          // Update game score/guess tracking to new socket.id if mid-game
           if (lobby.game) {
             const gained = lobby.game.songScores.get(existingSocketId) ?? 0;
             lobby.game.songScores.delete(existingSocketId);
             if (gained) lobby.game.songScores.set(socket.id, gained);
 
-            if (lobby.game.titleGuessedBy === existingSocketId) lobby.game.titleGuessedBy = socket.id;
-            if (lobby.game.artistGuessedBy === existingSocketId) lobby.game.artistGuessedBy = socket.id;
+            if (lobby.game.titleGuessers.has(existingSocketId)) {
+              lobby.game.titleGuessers.delete(existingSocketId);
+              lobby.game.titleGuessers.add(socket.id);
+            }
+            if (lobby.game.artistGuessers.has(existingSocketId)) {
+              lobby.game.artistGuessers.delete(existingSocketId);
+              lobby.game.artistGuessers.add(socket.id);
+            }
           }
 
           socket.data.lobbyCode = code;
@@ -71,8 +77,6 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
               previewUrl: song.previewUrl,
               elapsedMs,
               duration: lobby.settings.songDuration,
-              titleGuessedBy: game.titleGuessedBy ? (lobby.players.get(game.titleGuessedBy)?.username ?? null) : null,
-              artistGuessedBy: game.artistGuessedBy ? (lobby.players.get(game.artistGuessedBy)?.username ?? null) : null,
               scores,
             };
             socket.emit('game:current-state', payload);
@@ -143,6 +147,21 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       callback?.({});
     }
   );
+
+  socket.on('lobby:play-again', (callback?: (res: { error?: string }) => void) => {
+    const lobby = getPlayerLobby(socket);
+    if (!lobby) { callback?.({ error: 'Lobby not found' }); return; }
+    if (lobby.state !== 'ended') { callback?.({ error: 'Game not over yet' }); return; }
+
+    lobby.state = 'waiting';
+    lobby.game = null;
+    for (const player of lobby.players.values()) {
+      player.score = 0;
+    }
+
+    callback?.({});
+    io.to(lobby.code).emit('lobby:reset', { code: lobby.code });
+  });
 
   socket.on('lobby:start', async (callback?: (res: { error?: string }) => void) => {
     const lobby = getPlayerLobby(socket);

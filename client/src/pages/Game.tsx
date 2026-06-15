@@ -4,7 +4,6 @@ import {
   ChatMessage,
   GameCurrentState,
   GameOverPayload,
-  GuessedPayload,
   GuessResultPayload,
   PlayerScore,
   Song,
@@ -12,13 +11,13 @@ import {
   SongStartPayload,
 } from 'shared/types';
 import socket, { playerId } from '../socket';
-import Chat from '../components/Chat';
+import Chat, { ChatHandle } from '../components/Chat';
 import Scoreboard from '../components/Scoreboard';
 
 type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
 
 export default function Game() {
-  useParams<{ code: string }>();
+  const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('waiting');
@@ -28,19 +27,32 @@ export default function Game() {
   const [progress, setProgress] = useState(0);
   const [scores, setScores] = useState<PlayerScore[]>([]);
   const [revealedSong, setRevealedSong] = useState<Song | null>(null);
-  const [titleGuessedBy, setTitleGuessedBy] = useState<string | null>(null);
-  const [artistGuessedBy, setArtistGuessedBy] = useState<string | null>(null);
+  const [guessToast, setGuessToast] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [finalScores, setFinalScores] = useState<PlayerScore[]>([]);
+  const [playedSongs, setPlayedSongs] = useState<Song[]>([]);
 
+  const [volume, setVolume] = useState<number>(() => {
+    const saved = localStorage.getItem('mg_volume');
+    return saved !== null ? parseFloat(saved) : 0.8;
+  });
+
+  const chatRef = useRef<ChatHandle>(null);
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const songStartTime = useRef(0);
   const pendingPreviewUrl = useRef<string | null>(null);
   const pendingDuration = useRef(0);
 
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+    localStorage.setItem('mg_volume', String(volume));
+  }, [volume]);
+
   function playSong(previewUrl: string, duration: number) {
     if (!audioRef.current) return;
+    audioRef.current.volume = volume;
     audioRef.current.src = previewUrl;
     audioRef.current.currentTime = 0;
     audioRef.current.play().catch(() => null);
@@ -76,7 +88,7 @@ export default function Game() {
     // Reconnect and rejoin if page was refreshed
     if (!socket.connected) {
       const lobbyCode = sessionStorage.getItem('mg_lobbyCode');
-      const storedUsername = sessionStorage.getItem('mg_username');
+      const storedUsername = localStorage.getItem('mg_username');
       if (!lobbyCode || !storedUsername) { navigate('/'); return; }
       socket.connect();
       socket.once('connect', () => {
@@ -94,11 +106,10 @@ export default function Game() {
       setSongIndex(payload.songIndex);
       setTotalSongs(payload.totalSongs);
       setRevealedSong(null);
-      setTitleGuessedBy(null);
-      setArtistGuessedBy(null);
       setPhase('playing');
       setProgress(0);
       songStartTime.current = Date.now();
+      chatRef.current?.focus();
 
       if (ready) {
         playSong(payload.previewUrl, payload.duration);
@@ -106,15 +117,6 @@ export default function Game() {
         // User hasn't clicked Ready yet — buffer the song
         pendingPreviewUrl.current = payload.previewUrl;
         pendingDuration.current = payload.duration;
-      }
-    });
-
-    socket.on('game:guessed', (payload: GuessedPayload) => {
-      if (payload.type === 'title' || payload.type === 'both') {
-        setTitleGuessedBy(payload.byUsername);
-      }
-      if (payload.type === 'artist' || payload.type === 'both') {
-        setArtistGuessedBy(payload.byUsername);
       }
     });
 
@@ -138,9 +140,13 @@ export default function Game() {
 
     socket.on('game:over', (payload: GameOverPayload) => {
       setFinalScores(payload.finalScores);
+      setPlayedSongs(payload.songs);
       setPhase('over');
-      sessionStorage.removeItem('mg_lobbyCode');
       if (audioRef.current) audioRef.current.pause();
+    });
+
+    socket.on('lobby:reset', () => {
+      navigate(`/lobby/${code}`);
     });
 
     // Sent when rejoining mid-song after a refresh
@@ -148,8 +154,6 @@ export default function Game() {
       setSongIndex(state.songIndex);
       setTotalSongs(state.totalSongs);
       setScores(state.scores);
-      setTitleGuessedBy(state.titleGuessedBy);
-      setArtistGuessedBy(state.artistGuessedBy);
       setPhase('playing');
       setProgress(state.elapsedMs / state.duration);
       songStartTime.current = Date.now() - state.elapsedMs;
@@ -165,10 +169,10 @@ export default function Game() {
     return () => {
       socket.off('game:started');
       socket.off('game:song-start');
-      socket.off('game:guessed');
       socket.off('game:song-end');
       socket.off('game:chat');
       socket.off('game:over');
+      socket.off('lobby:reset');
       socket.off('game:current-state');
       if (progressInterval.current) clearInterval(progressInterval.current);
     };
@@ -184,6 +188,12 @@ export default function Game() {
         s.playerId === socket.id ? { ...s, score: result.totalScore } : s
       )
     );
+    if (result.correct) {
+      const label = result.correct === 'both' ? 'title & artist' : result.correct;
+      if (toastTimeout.current) clearTimeout(toastTimeout.current);
+      setGuessToast(`+${result.points} pts · ${label}`);
+      toastTimeout.current = setTimeout(() => setGuessToast(null), 2000);
+    }
   }
 
   useEffect(() => {
@@ -193,22 +203,60 @@ export default function Game() {
 
   if (phase === 'over') {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: 'flex-start', paddingTop: 48 }}>
         <div className="game-over fade-in">
           <h1>Game Over!</h1>
-          <p className="subtitle">Final scores</p>
-          <div className="score-list" style={{ marginBottom: 24 }}>
-            {finalScores.map((s, i) => (
-              <div key={s.playerId} className="score-item">
-                <span className={`score-rank ${i === 0 ? 'top' : ''}`}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
-                </span>
-                <span className="score-username">{s.username}</span>
-                <span className="score-pts">{s.score} pts</span>
+          <div className="game-over-columns">
+            <div>
+              <p className="section-title" style={{ marginBottom: 12 }}>Final scores</p>
+              <div className="score-list" style={{ marginBottom: 24 }}>
+                {finalScores.map((s, i) => (
+                  <div key={s.playerId} className="score-item">
+                    <span className={`score-rank ${i === 0 ? 'top' : ''}`}>
+                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+                    </span>
+                    <span className="score-username">{s.username}</span>
+                    <span className="score-pts">{s.score} pts</span>
+                  </div>
+                ))}
               </div>
-            ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  className="btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={() => socket.emit('lobby:play-again')}
+                >
+                  Play Again
+                </button>
+                <button
+                  className="btn-secondary"
+                  style={{ width: '100%' }}
+                  onClick={() => { sessionStorage.removeItem('mg_lobbyCode'); navigate('/'); }}
+                >
+                  Back to Home
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="section-title" style={{ marginBottom: 12 }}>Songs played</p>
+              <div className="songs-played-list">
+                {playedSongs.map((song, i) => (
+                  <div key={song.id} className="songs-played-item">
+                    <span className="songs-played-num">{i + 1}</span>
+                    {song.albumArt
+                      ? <img src={song.albumArt} alt={song.title} className="songs-played-art" />
+                      : <div className="songs-played-art songs-played-art-placeholder">🎵</div>
+                    }
+                    <div className="songs-played-info">
+                      <div className="songs-played-title">{song.title}</div>
+                      <div className="songs-played-artist">{song.artists.join(', ')}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <button className="btn-primary" onClick={() => navigate('/')}>Back to Home</button>
         </div>
       </div>
     );
@@ -235,6 +283,29 @@ export default function Game() {
   }
 
   return (
+    <div className="game-wrapper">
+      <div className="game-topbar">
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>MusicGuessr</span>
+        <div className="volume-control">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {volume === 0
+              ? <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>
+              : volume < 0.5
+              ? <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></>
+              : <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></>
+            }
+          </svg>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.02}
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+          />
+        </div>
+      </div>
+
     <div className="game-layout">
       <Scoreboard scores={scores} myId={socket.id ?? ''} />
 
@@ -268,19 +339,13 @@ export default function Game() {
           />
         </div>
 
-        {phase === 'playing' && (
-          <div className="guess-badges">
-            <span className={`guess-badge ${titleGuessedBy ? 'locked' : 'unlocked'}`}>
-              {titleGuessedBy ? `Title: ${titleGuessedBy}` : 'Title'}
-            </span>
-            <span className={`guess-badge ${artistGuessedBy ? 'locked' : 'unlocked'}`}>
-              {artistGuessedBy ? `Artist: ${artistGuessedBy}` : 'Artist'}
-            </span>
-          </div>
+        {guessToast && (
+          <div className="guess-toast fade-in">{guessToast}</div>
         )}
       </div>
 
       <Chat
+        ref={chatRef}
         messages={messages}
         onSend={sendGuess}
         disabled={phase !== 'playing'}
@@ -288,6 +353,7 @@ export default function Game() {
       />
 
       <audio ref={audioRef} preload="auto" />
+    </div>
     </div>
   );
 }

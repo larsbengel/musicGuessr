@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent, forwardRef, useImperativeHandle } from 'react';
 import { ChatMessage } from 'shared/types';
 
 interface Props {
@@ -8,9 +8,18 @@ interface Props {
   myId: string;
 }
 
-export default function Chat({ messages, onSend, disabled, myId }: Props) {
+export interface ChatHandle {
+  focus: () => void;
+}
+
+const Chat = forwardRef<ChatHandle, Props>(function Chat({ messages, onSend, disabled, myId }, ref) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => inputRef.current?.focus(),
+  }));
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,25 +33,11 @@ export default function Chat({ messages, onSend, disabled, myId }: Props) {
     setInput('');
   }
 
-  function msgClass(msg: ChatMessage): string {
-    if (msg.correct === 'both') return 'chat-msg correct-both';
-    if (msg.correct === 'title') return 'chat-msg correct-title';
-    if (msg.correct === 'artist') return 'chat-msg correct-artist';
-    return 'chat-msg';
-  }
-
-  function correctTag(msg: ChatMessage): string | null {
-    if (msg.correct === 'both') return 'title + artist';
-    if (msg.correct === 'title') return 'title';
-    if (msg.correct === 'artist') return 'artist';
-    return null;
-  }
-
   return (
     <div className="chat-panel">
       <div className="chat-messages">
         {messages.map((msg, i) => (
-          <div key={i} className={msgClass(msg)}>
+          <div key={i} className="chat-msg">
             <span
               className="chat-username"
               style={msg.playerId === myId ? { color: 'var(--accent)' } : undefined}
@@ -50,9 +45,6 @@ export default function Chat({ messages, onSend, disabled, myId }: Props) {
               {msg.username}
             </span>
             <span>{msg.text}</span>
-            {correctTag(msg) && (
-              <span className="chat-correct-tag">{correctTag(msg)}</span>
-            )}
           </div>
         ))}
         <div ref={bottomRef} />
@@ -60,16 +52,22 @@ export default function Chat({ messages, onSend, disabled, myId }: Props) {
 
       <form className="chat-input-row" onSubmit={handleSubmit}>
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={disabled ? 'Waiting for next song...' : 'Type your guess...'}
           disabled={disabled}
           autoComplete="off"
         />
-        <button type="submit" className="btn-primary" disabled={disabled || !input.trim()}>
-          Send
+        <button type="submit" className="btn-primary" disabled={disabled || !input.trim()} style={{ width: 40, height: 40, padding: 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
         </button>
       </form>
     </div>
   );
-}
+});
+
+export default Chat;

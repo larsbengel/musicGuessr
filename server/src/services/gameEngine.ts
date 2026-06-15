@@ -21,12 +21,12 @@ function isMatch(guess: string, target: string): boolean {
 export function checkGuess(
   guess: string,
   song: Song,
-  titleLocked: boolean,
-  artistLocked: boolean
+  playerHasTitle: boolean,
+  playerHasArtist: boolean
 ): { title: boolean; artist: boolean } {
   return {
-    title: !titleLocked && isMatch(guess, song.title),
-    artist: !artistLocked && song.artists.some((a) => isMatch(guess, a)),
+    title: !playerHasTitle && isMatch(guess, song.title),
+    artist: !playerHasArtist && song.artists.some((a) => isMatch(guess, a)),
   };
 }
 

@@ -9,11 +9,11 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [username, setUsernameState] = useState(
-    () => sessionStorage.getItem('mg_username') ?? ''
+    () => localStorage.getItem('mg_username') ?? ''
   );
 
   function setUsername(u: string) {
-    sessionStorage.setItem('mg_username', u);
+    localStorage.setItem('mg_username', u);
     setUsernameState(u);
   }
 

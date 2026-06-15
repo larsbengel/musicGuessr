@@ -12,8 +12,8 @@ export interface GameState {
   songs: Song[];
   currentSongIndex: number;
   songStartTime: number;
-  titleGuessedBy: string | null;
-  artistGuessedBy: string | null;
+  titleGuessers: Set<string>;   // socket IDs that already scored the title this song
+  artistGuessers: Set<string>;  // socket IDs that already scored the artist this song
   songTimer: NodeJS.Timeout | null;
   betweenSongs: boolean;
   songScores: Map<string, number>;
