@@ -8,7 +8,7 @@ import {
   deleteLobby,
 } from '../state/lobbyStore';
 import { startGame, cleanupLobby } from '../game/gameLoop';
-import { getPlaylistTracks } from '../services/spotify';
+import { getPlaylistTracks } from '../services/deezer';
 
 export function setupLobbyHandlers(io: Server, socket: Socket): void {
   socket.on(
@@ -71,6 +71,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
               username: p.username,
               score: p.score,
               gained: game.songScores.get(p.id) ?? 0,
+              gainedByCategory: game.categoryScores.get(p.id) ?? {},
             }));
             const payload: GameCurrentState = {
               songIndex: game.currentSongIndex,
@@ -79,6 +80,8 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
               elapsedMs,
               duration: lobby.settings.songDuration,
               scores,
+              guessMode: lobby.settings.guessMode,
+              hasYear: song.year !== undefined,
             };
             socket.emit('game:current-state', payload);
           }

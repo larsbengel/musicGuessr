@@ -1,4 +1,4 @@
-import { LobbyInfo, Player, Song, SpotifyPlaylist } from '../../../shared/types';
+import { type GuessCategory, LobbyInfo, Player, Song, SpotifyPlaylist } from '../../../shared/types';
 
 export interface PlayerState {
   id: string;       // socket.id — changes on reconnect
@@ -18,6 +18,7 @@ export interface GameState {
   songTimer: NodeJS.Timeout | null;
   betweenSongs: boolean;
   songScores: Map<string, number>;
+  categoryScores: Map<string, Partial<Record<GuessCategory, number>>>;
 }
 
 export interface LobbyState {
@@ -30,6 +31,7 @@ export interface LobbyState {
   settings: {
     songCount: number;
     songDuration: number; // ms
+    guessMode: { title: boolean; artist: boolean; year: boolean };
   };
   game: GameState | null;
 }

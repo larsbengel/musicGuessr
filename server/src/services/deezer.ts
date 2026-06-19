@@ -103,6 +103,7 @@ export async function getPlaylistTracks(playlistId: string, fetchYears = false):
     artists: [r.artist],
     albumArt: r.albumArt,
     previewUrl: r.previewUrl,
+    link: `https://www.deezer.com/track/${r.id}`,
     year: albumYears.get(r.albumId),
   }));
 }

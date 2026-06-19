@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { ChatMessage, GuessCategory } from '../../../shared/types';
 import { getLobby } from '../state/lobbyStore';
-import { checkGuess, calculatePoints } from '../services/gameEngine';
+import { checkGuess, calculatePoints, checkClose } from '../services/gameEngine';
 
 export function setupGameHandlers(io: Server, socket: Socket): void {
   socket.on('game:guess', (text: string) => {
@@ -53,6 +53,16 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       player.score += pointsGained;
       game.songScores.set(socket.id, (game.songScores.get(socket.id) ?? 0) + pointsGained);
 
+      // guessers sets already include this player at this point, so size===1 means first guesser
+      const titlePts = titleHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.titleGuessers.size === 1 ? 1.5 : 1)) : 0;
+      const artistPts = artistHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.artistGuessers.size === 1 ? 1.5 : 1)) : 0;
+      const yearPts = yearHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.yearGuessers.size === 1 ? 1.5 : 1)) : 0;
+      const catScores = game.categoryScores.get(socket.id) ?? {};
+      if (titleHit) catScores.title = (catScores.title ?? 0) + titlePts;
+      if (artistHit) catScores.artist = (catScores.artist ?? 0) + artistPts;
+      if (yearHit) catScores.year = (catScores.year ?? 0) + yearPts;
+      game.categoryScores.set(socket.id, catScores);
+
       const playerHasTitle = game.titleGuessers.has(socket.id);
       const playerHasArtist = game.artistGuessers.has(socket.id);
       const playerHasYear = game.yearGuessers.has(socket.id);
@@ -71,6 +81,7 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         playerId: socket.id,
         score: player.score,
         gained: game.songScores.get(socket.id) ?? 0,
+        gainedByCategory: game.categoryScores.get(socket.id) ?? {},
       });
 
       // Broadcast a system announcement (no guess text) so everyone sees who scored what
@@ -81,6 +92,26 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         timestamp: Date.now(),
         system: true,
         correct,
+      } satisfies ChatMessage);
+      return;
+    }
+
+    const close = checkClose(
+      text,
+      song,
+      game.titleGuessers.has(socket.id),
+      game.artistGuessers.has(socket.id),
+      lobby.settings.guessMode
+    );
+
+    if (close) {
+      io.to(code).emit('game:chat', {
+        playerId: socket.id,
+        username: player.username,
+        text: '',
+        timestamp: Date.now(),
+        system: true,
+        close: true,
       } satisfies ChatMessage);
       return;
     }

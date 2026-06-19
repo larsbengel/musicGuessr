@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
 import lobbyRoutes from './routes/lobby';
-import spotifyRoutes from './routes/spotify';
+import deezerRoutes from './routes/deezer';
 import { setupSocketHandlers } from './socket';
 
 const app = express();
@@ -25,7 +25,7 @@ if (!isProd) {
 app.use(express.json());
 
 app.use('/api/lobby', lobbyRoutes);
-app.use('/api/spotify', spotifyRoutes);
+app.use('/api/deezer', deezerRoutes);
 
 setupSocketHandlers(io);
 

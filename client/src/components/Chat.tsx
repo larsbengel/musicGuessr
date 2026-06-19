@@ -6,9 +6,10 @@ interface Props {
   messages: ChatMessage[];
   onSend: (text: string) => void;
   disabled: boolean;
+  songIndex: number;
 }
 
-export default function Chat({ messages, onSend, disabled }: Props) {
+export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
   const [input, setInput] = useState('');
   const lastSent = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,10 @@ export default function Chat({ messages, onSend, disabled }: Props) {
   useEffect(() => {
     if (!disabled) inputRef.current?.focus();
   }, [disabled]);
+
+  useEffect(() => {
+    setInput('');
+  }, [songIndex]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -36,13 +41,31 @@ export default function Chat({ messages, onSend, disabled }: Props) {
       e.preventDefault();
       setInput(lastSent.current);
     }
+    if (e.key === 'ArrowDown' && input !== '') {
+      e.preventDefault();
+      setInput('');
+    }
   }
 
   return (
     <div className="chat-panel">
       <div className="chat-messages">
         {messages.map((msg, i) => {
+          if (msg.divider !== undefined) {
+            return (
+              <div key={i} className="chat-divider">
+                <span>Song {msg.divider}</span>
+              </div>
+            );
+          }
           const color = playerColor(msg.username);
+          if (msg.system && msg.close) {
+            return (
+              <div key={i} className="chat-msg chat-system chat-system-close">
+                <strong style={{ color }}>{msg.username}</strong> is close!
+              </div>
+            );
+          }
           if (msg.system) {
             const raw = msg.correct;
             const cats: string[] = Array.isArray(raw) ? raw

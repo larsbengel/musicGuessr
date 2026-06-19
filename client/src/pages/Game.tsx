@@ -32,6 +32,11 @@ export default function Game() {
   const [scores, setScores] = useState<PlayerScore[]>(
     (location.state as { initialScores?: PlayerScore[] } | null)?.initialScores ?? []
   );
+  const [guessMode, setGuessMode] = useState<{ title: boolean; artist: boolean; year: boolean }>(
+    (location.state as { guessMode?: { title: boolean; artist: boolean; year: boolean } } | null)?.guessMode
+    ?? { title: true, artist: true, year: false }
+  );
+  const [hasYear, setHasYear] = useState(true);
   const [revealedSong, setRevealedSong] = useState<Song | null>(null);
   const [myTitle, setMyTitle] = useState<string | null>(null);
   const [myArtists, setMyArtists] = useState<string[] | null>(null);
@@ -41,6 +46,9 @@ export default function Game() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [finalScores, setFinalScores] = useState<PlayerScore[]>([]);
   const [playedSongs, setPlayedSongs] = useState<Song[]>([]);
+  const [hostId, setHostId] = useState<string | null>(
+    (location.state as { hostId?: string } | null)?.hostId ?? null
+  );
 
   const [volume, setVolume] = useState<number>(() => {
     const saved = localStorage.getItem('mg_volume');
@@ -104,11 +112,13 @@ export default function Game() {
       });
     }
 
-    socket.on('game:started', ({ totalSongs: t, initialScores }: { totalSongs: number; initialScores: PlayerScore[] }) => {
+    socket.on('game:started', ({ totalSongs: t, initialScores, guessMode: gm, hostId: hId }: { totalSongs: number; initialScores: PlayerScore[]; guessMode: typeof guessMode; hostId: string }) => {
       setTotalSongs(t);
       setPhase('waiting');
       setMessages([]);
       setScores(initialScores);
+      if (gm) setGuessMode(gm);
+      if (hId) setHostId(hId);
     });
 
     socket.on('game:song-start', (payload: SongStartPayload) => {
@@ -121,6 +131,11 @@ export default function Game() {
       setMyYear(null);
       setPhase('playing');
       setProgress(0);
+      setHasYear(payload.hasYear);
+      setScores((prev) => prev.map((s) => ({ ...s, gained: 0, gainedByCategory: {} })));
+      if (payload.songIndex > 0) {
+        setMessages((prev) => [...prev, { playerId: '', username: '', text: '', timestamp: Date.now(), divider: payload.songIndex + 1 }]);
+      }
       songStartTime.current = Date.now();
 
       if (ready) {
@@ -146,9 +161,9 @@ export default function Game() {
       if (progressInterval.current) clearInterval(progressInterval.current);
     });
 
-    socket.on('game:score-update', (update: { playerId: string; score: number; gained: number }) => {
+    socket.on('game:score-update', (update: { playerId: string; score: number; gained: number; gainedByCategory: PlayerScore['gainedByCategory'] }) => {
       setScores((prev) => prev.map((s) =>
-        s.playerId === update.playerId ? { ...s, score: update.score, gained: update.gained } : s
+        s.playerId === update.playerId ? { ...s, score: update.score, gained: update.gained, gainedByCategory: update.gainedByCategory } : s
       ));
     });
 
@@ -175,6 +190,8 @@ export default function Game() {
       setPhase('playing');
       setProgress(state.elapsedMs / state.duration);
       songStartTime.current = Date.now() - state.elapsedMs;
+      if (state.guessMode) setGuessMode(state.guessMode);
+      setHasYear(state.hasYear);
 
       if (ready) {
         playSong(state.previewUrl, state.duration);
@@ -243,12 +260,21 @@ export default function Game() {
                 ))}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {hostId === socket.id && (
+                  <button
+                    className="btn-primary"
+                    style={{ width: '100%' }}
+                    onClick={() => socket.emit('lobby:play-again')}
+                  >
+                    Play Again
+                  </button>
+                )}
                 <button
-                  className="btn-primary"
+                  className="btn-secondary"
                   style={{ width: '100%' }}
-                  onClick={() => socket.emit('lobby:play-again')}
+                  onClick={() => navigate(`/lobby/${code}`)}
                 >
-                  Play Again
+                  Back to Lobby
                 </button>
                 <button
                   className="btn-secondary"
@@ -283,6 +309,19 @@ export default function Game() {
                         </div>
                       )}
                     </div>
+                    {song.link && (
+                      <a
+                        href={song.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="songs-played-deezer-btn"
+                        title="Open on Deezer"
+                      >
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M 12 12.423 L 12 14.577 L 9.818 14.577 L 9.818 12.423 Z M 14.182 9.692 L 14.182 14.577 L 12 14.577 L 12 9.692 Z M 16.364 10.962 L 16.364 14.577 L 14.182 14.577 L 14.182 10.962 Z M 18.545 9.077 L 18.545 14.577 L 16.364 14.577 L 16.364 9.077 Z M 5.455 13.154 L 5.455 14.577 L 3.273 14.577 L 3.273 13.154 Z M 20.727 7.423 L 20.727 14.577 L 18.545 14.577 L 18.545 7.423 Z M 7.636 11.885 L 7.636 14.577 L 5.455 14.577 L 5.455 11.885 Z M 9.818 10.615 L 9.818 12.423 L 7.636 12.423 L 7.636 10.615 Z"/>
+                        </svg>
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
@@ -340,10 +379,20 @@ export default function Game() {
       </div>
 
     <div className="game-layout">
-      <Scoreboard scores={scores} myId={socket.id ?? ''} />
+      <Scoreboard scores={scores} myId={socket.id ?? ''} guessMode={guessMode} hasYear={hasYear} />
 
       <div className="game-center">
         <p className="song-counter">Song {songIndex + 1} of {totalSongs}</p>
+
+        <div className="guess-categories">
+          {guessMode.title && <span className={`guess-cat-chip ${myTitle ? 'solved' : ''}`}>title</span>}
+          {guessMode.artist && <span className={`guess-cat-chip ${myArtists ? 'solved' : ''}`}>artist</span>}
+          {guessMode.year && (
+            <span className={`guess-cat-chip ${!hasYear ? 'unavailable' : myYear ? 'solved' : ''}`} title={!hasYear ? 'No year data for this song' : undefined}>
+              year{!hasYear && ' —'}
+            </span>
+          )}
+        </div>
 
         <div style={{ position: 'relative' }}>
           {phase === 'revealing' && revealedSong?.albumArt ? (
@@ -385,6 +434,7 @@ export default function Game() {
         messages={messages}
         onSend={sendGuess}
         disabled={phase !== 'playing'}
+        songIndex={songIndex}
       />
 
       <audio ref={audioRef} preload="auto" />

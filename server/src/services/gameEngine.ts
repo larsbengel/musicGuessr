@@ -1,6 +1,6 @@
 import { Song } from '../../../shared/types';
 import { LobbyState } from '../state/lobbyStore';
-import { getPlaylistTracks } from './spotify';
+import { getPlaylistTracks } from './deezer';
 
 function normalize(s: string): string {
   return s
@@ -20,6 +20,51 @@ function stripExtras(s: string): string {
     .trim();
 }
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const curr = [i];
+    for (let j = 1; j <= n; j++) {
+      curr[j] = a[i - 1] === b[j - 1]
+        ? prev[j - 1]
+        : 1 + Math.min(prev[j], curr[j - 1], prev[j - 1]);
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
+function closeThreshold(len: number): number {
+  if (len < 4) return 0;
+  if (len < 6) return 1;
+  return 2;
+}
+
+function isCloseFuzzy(guess: string, target: string): boolean {
+  const g = normalize(guess);
+  const t = normalize(target);
+  const tStripped = normalize(stripExtras(target));
+  const best = tStripped.length >= 2 ? tStripped : t;
+  const threshold = closeThreshold(best.length);
+  if (threshold === 0) return false;
+  if (levenshtein(g, t) <= threshold) return true;
+  if (tStripped && levenshtein(g, tStripped) <= threshold) return true;
+  return false;
+}
+
+export function checkClose(
+  guess: string,
+  song: Song,
+  playerHasTitle: boolean,
+  playerHasArtist: boolean,
+  guessMode: { title: boolean; artist: boolean; year: boolean }
+): boolean {
+  if (guessMode.title && !playerHasTitle && isCloseFuzzy(guess, song.title)) return true;
+  if (guessMode.artist && !playerHasArtist && song.artists.some((a) => isCloseFuzzy(guess, a))) return true;
+  return false;
+}
+
 function isMatch(guess: string, target: string): boolean {
   const g = normalize(guess);
   const t = normalize(target);
@@ -29,6 +74,12 @@ function isMatch(guess: string, target: string): boolean {
   if (tStripped && g === tStripped) return true;
   if (t.length >= 3 && g.includes(t)) return true;
   if (tStripped.length >= 3 && g.includes(tStripped)) return true;
+  // Fallback: compare with all spaces removed (handles e.g. "acdc" matching "AC/DC")
+  const gNS = g.replace(/\s/g, '');
+  const tNS = t.replace(/\s/g, '');
+  const tStrippedNS = tStripped.replace(/\s/g, '');
+  if (gNS && tNS.length >= 2 && gNS === tNS) return true;
+  if (tStrippedNS && gNS === tStrippedNS) return true;
   return false;
 }
 

@@ -29,12 +29,12 @@ export default function Lobby() {
 
   // Load genres and featured playlists once
   useEffect(() => {
-    fetch('/api/spotify/genres')
+    fetch('/api/deezer/genres')
       .then((r) => r.json())
       .then((d: { genres: Genre[] }) => setGenres(d.genres))
       .catch(() => null);
 
-    fetch('/api/spotify/featured')
+    fetch('/api/deezer/featured')
       .then((r) => r.json())
       .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
       .catch(() => null);
@@ -69,8 +69,8 @@ export default function Lobby() {
       setError(message);
       setStarting(false);
     });
-    socket.on('game:started', ({ initialScores }: { totalSongs: number; initialScores: PlayerScore[] }) => {
-      navigate(`/game/${code}`, { state: { initialScores } });
+    socket.on('game:started', ({ initialScores, guessMode, hostId }: { totalSongs: number; initialScores: PlayerScore[]; guessMode: { title: boolean; artist: boolean; year: boolean }; hostId: string }) => {
+      navigate(`/game/${code}`, { state: { initialScores, guessMode, hostId } });
     });
 
     return () => {
@@ -103,7 +103,7 @@ export default function Lobby() {
     if (selectedGenre?.id === genre.id) {
       // deselect — go back to featured
       setSelectedGenre(null);
-      fetch('/api/spotify/featured')
+      fetch('/api/deezer/featured')
         .then((r) => r.json())
         .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
         .catch(() => null);
@@ -114,7 +114,7 @@ export default function Lobby() {
     setSearchResults([]);
     setBrowseResults([]);
     setSearching(true);
-    fetch(`/api/spotify/genre/${genre.id}/playlists?name=${encodeURIComponent(genre.name)}`)
+    fetch(`/api/deezer/genre/${genre.id}/playlists?name=${encodeURIComponent(genre.name)}`)
       .then((r) => r.json())
       .then((d: { playlists?: SpotifyPlaylist[] }) => setBrowseResults(d.playlists ?? []))
       .catch(() => setBrowseResults([]))
@@ -129,7 +129,7 @@ export default function Lobby() {
   function doSearch(q: string) {
     if (!q.trim()) return;
     setSearching(true);
-    fetch(`/api/spotify/search?q=${encodeURIComponent(q)}`)
+    fetch(`/api/deezer/search?q=${encodeURIComponent(q)}`)
       .then((r) => r.json())
       .then((data: { playlists: SpotifyPlaylist[] }) => setSearchResults(data.playlists))
       .catch(() => setSearchResults([]))

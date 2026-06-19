@@ -20,6 +20,7 @@ export interface Song {
   artists: string[];
   albumArt: string | null;
   previewUrl: string;
+  link?: string;
   year?: number;
   playlistName?: string;
 }
@@ -44,6 +45,7 @@ export interface SongStartPayload {
   totalSongs: number;
   previewUrl: string;
   duration: number; // ms
+  hasYear: boolean;
 }
 
 export interface PlayerScore {
@@ -51,6 +53,7 @@ export interface PlayerScore {
   username: string;
   score: number;
   gained: number;
+  gainedByCategory?: Partial<Record<GuessCategory, number>>;
 }
 
 export interface SongEndPayload {
@@ -77,6 +80,8 @@ export interface ChatMessage {
   timestamp: number;
   system?: boolean;
   correct?: GuessCategory[];
+  close?: boolean;
+  divider?: number; // client-only: song number for round dividers
 }
 
 export interface GameOverPayload {
@@ -91,4 +96,6 @@ export interface GameCurrentState {
   elapsedMs: number;
   duration: number;
   scores: PlayerScore[];
+  guessMode: { title: boolean; artist: boolean; year: boolean };
+  hasYear: boolean;
 }

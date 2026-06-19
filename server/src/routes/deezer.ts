@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { searchPlaylists, getFeaturedPlaylists, getGenres, getGenrePlaylists } from '../services/spotify';
+import { searchPlaylists, getFeaturedPlaylists, getGenres, getGenrePlaylists } from '../services/deezer';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ router.get('/search', async (req, res) => {
     const playlists = await searchPlaylists(query.trim());
     res.json({ playlists });
   } catch (err) {
-    console.error('Spotify search error:', err);
+    console.error('Deezer search error:', err);
     res.status(500).json({ error: 'Search failed' });
   }
 });

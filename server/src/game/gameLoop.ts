@@ -31,6 +31,7 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     songTimer: null,
     betweenSongs: true,
     songScores: new Map(),
+    categoryScores: new Map(),
   };
 
   // Reset scores
@@ -45,7 +46,7 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     gained: 0,
   }));
 
-  io.to(lobby.code).emit('game:started', { totalSongs: songs.length, initialScores });
+  io.to(lobby.code).emit('game:started', { totalSongs: songs.length, initialScores, guessMode: lobby.settings.guessMode, hostId: lobby.hostId });
 
   setTimeout(() => playNextSong(io, lobby.code), GAME_START_DELAY);
 }
@@ -68,12 +69,14 @@ function playNextSong(io: Server, code: string): void {
   lobby.game.yearGuessers = new Set();
   lobby.game.betweenSongs = false;
   lobby.game.songScores = new Map();
+  lobby.game.categoryScores = new Map();
 
   const payload: SongStartPayload = {
     songIndex: lobby.game.currentSongIndex,
     totalSongs: lobby.game.songs.length,
     previewUrl: song.previewUrl,
     duration: lobby.settings.songDuration,
+    hasYear: song.year !== undefined,
   };
 
   io.to(code).emit('game:song-start', payload);
@@ -100,6 +103,7 @@ function endSong(io: Server, code: string): void {
     username: p.username,
     score: p.score,
     gained: lobby.game!.songScores.get(p.id) ?? 0,
+    gainedByCategory: lobby.game!.categoryScores.get(p.id) ?? {},
   }));
 
   const payload: SongEndPayload = { song, scores };
