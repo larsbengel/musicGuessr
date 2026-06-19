@@ -696,3 +696,54 @@ label {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+body { overflow-x: hidden; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .lobby-layout {
+    grid-template-columns: 1fr;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .lobby-layout > div { min-width: 0; }
+
+  .game-wrapper {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .game-layout {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+    flex: none;
+  }
+
+  .game-layout > * { min-width: 0; }
+
+  .game-center { order: 1; }
+  .chat-panel { order: 2; min-height: 260px; max-height: 320px; }
+  .scoreboard-panel { order: 3; max-height: 200px; }
+
+  .album-art {
+    width: 140px;
+    height: 140px;
+  }
+
+  .song-reveal .song-title { font-size: 18px; }
+
+  .progress-bar-wrap { max-width: 100% !important; }
+
+  .game-over-columns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .game-over { max-width: 100%; }
+  .game-over h1 { font-size: 26px; }
+  .songs-played-list { max-height: none; }
+
+  .volume-control input[type="range"] { width: 60px; }
+}

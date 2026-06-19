@@ -1,11 +1,9 @@
 import { Server, Socket } from 'socket.io';
 import { GameCurrentState, PlayerScore, SpotifyPlaylist } from '../../../shared/types';
 import {
-  createLobby,
   getLobby,
   lobbyToInfo,
   LobbyState,
-  deleteLobby,
 } from '../state/lobbyStore';
 import { startGame, cleanupLobby } from '../game/gameLoop';
 import { getPlaylistTracks } from '../services/deezer';
@@ -22,7 +20,6 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
 
       const lobby = getLobby(code);
       if (!lobby) { callback?.({ error: 'Lobby not found' }); return; }
-      if (lobby.state === 'ended') { callback?.({ error: 'Game has ended' }); return; }
 
       // --- Rejoin: same stable playerId, new socket ---
       const existingSocketId = lobby.playerIds.get(playerId);
@@ -31,7 +28,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
         if (existingPlayer) {
           // Transfer state to new socket
           lobby.players.delete(existingSocketId);
-          const rejoined = { ...existingPlayer, id: socket.id };
+          const rejoined = { ...existingPlayer, id: socket.id, isHost: lobby.hostId === existingSocketId };
           lobby.players.set(socket.id, rejoined);
           lobby.playerIds.set(playerId, socket.id);
 
@@ -92,7 +89,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       }
 
       // --- New join ---
-      if (lobby.state !== 'waiting') { callback?.({ error: 'Game already in progress' }); return; }
+      if (lobby.state === 'ended') { callback?.({ error: 'Game has ended' }); return; }
 
       const isFirst = lobby.players.size === 0;
       const player = { id: socket.id, playerId, username: username.trim(), score: 0, isHost: isFirst };
@@ -106,6 +103,24 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       callback?.({});
       socket.emit('lobby:state', lobbyToInfo(lobby));
       socket.to(code).emit('lobby:player-joined', { playerId: socket.id, username: player.username });
+
+      // If joining mid-game, send them to the game page and let them request current state
+      if (lobby.state === 'playing' && lobby.game) {
+        const { game } = lobby;
+        const scores: PlayerScore[] = Array.from(lobby.players.values()).map((p) => ({
+          playerId: p.id,
+          username: p.username,
+          score: p.score,
+          gained: game.songScores.get(p.id) ?? 0,
+          gainedByCategory: game.categoryScores.get(p.id) ?? {},
+        }));
+        socket.emit('game:join-in-progress', {
+          totalSongs: game.songs.length,
+          initialScores: scores,
+          guessMode: lobby.settings.guessMode,
+          hostId: lobby.hostId,
+        });
+      }
     }
   );
 
@@ -193,6 +208,35 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
 
     callback?.({});
     await startGame(io, lobby);
+  });
+
+  socket.on('lobby:leave', () => {
+    const lobby = getPlayerLobby(socket);
+    if (!lobby) return;
+
+    const player = lobby.players.get(socket.id);
+    if (!player) return;
+
+    lobby.players.delete(socket.id);
+    lobby.playerIds.delete(player.playerId);
+
+    io.to(lobby.code).emit('lobby:player-left', { playerId: socket.id, username: player.username });
+
+    if (lobby.hostId === socket.id) {
+      const next = Array.from(lobby.players.values()).find((p) => p.id !== socket.id);
+      if (next) {
+        next.isHost = true;
+        lobby.hostId = next.id;
+        io.to(lobby.code).emit('lobby:state', lobbyToInfo(lobby));
+      }
+    }
+
+    if (lobby.players.size === 0) {
+      cleanupLobby(io, lobby.code);
+    }
+
+    socket.leave(lobby.code);
+    socket.data.lobbyCode = undefined;
   });
 
   socket.on('disconnect', () => {

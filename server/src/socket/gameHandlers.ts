@@ -1,9 +1,38 @@
 import { Server, Socket } from 'socket.io';
-import { ChatMessage, GuessCategory } from '../../../shared/types';
+import { ChatMessage, GameCurrentState, GuessCategory, PlayerScore } from '../../../shared/types';
 import { getLobby } from '../state/lobbyStore';
 import { checkGuess, calculatePoints, checkClose } from '../services/gameEngine';
 
 export function setupGameHandlers(io: Server, socket: Socket): void {
+  socket.on('game:request-sync', () => {
+    const code = socket.data.lobbyCode as string | undefined;
+    if (!code) return;
+    const lobby = getLobby(code);
+    if (!lobby?.game || lobby.state !== 'playing' || lobby.game.betweenSongs) return;
+
+    const { game } = lobby;
+    const song = game.songs[game.currentSongIndex];
+    const elapsedMs = Date.now() - game.songStartTime;
+    const scores: PlayerScore[] = Array.from(lobby.players.values()).map((p) => ({
+      playerId: p.id,
+      username: p.username,
+      score: p.score,
+      gained: game.songScores.get(p.id) ?? 0,
+      gainedByCategory: game.categoryScores.get(p.id) ?? {},
+    }));
+    const payload: GameCurrentState = {
+      songIndex: game.currentSongIndex,
+      totalSongs: game.songs.length,
+      previewUrl: song.previewUrl,
+      elapsedMs,
+      duration: lobby.settings.songDuration,
+      scores,
+      guessMode: lobby.settings.guessMode,
+      hasYear: song.year !== undefined,
+    };
+    socket.emit('game:current-state', payload);
+  });
+
   socket.on('game:guess', (text: string) => {
     const code = socket.data.lobbyCode as string | undefined;
     if (!code) return;

@@ -14,7 +14,7 @@ import {
 import socket, { playerId } from '../socket';
 import Chat from '../components/Chat';
 import Scoreboard from '../components/Scoreboard';
-import Logo from '../components/Logo';
+import Topbar from '../components/Topbar';
 import { playerColor } from '../utils/playerColor';
 
 type Phase = 'waiting' | 'playing' | 'revealing' | 'over';
@@ -61,6 +61,7 @@ export default function Game() {
   const songStartTime = useRef(0);
   const pendingPreviewUrl = useRef<string | null>(null);
   const pendingDuration = useRef(0);
+  const syncRequested = useRef(false);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -200,6 +201,12 @@ export default function Game() {
         pendingDuration.current = state.duration;
       }
     });
+
+    // If joining mid-game from the lobby, request current song state once listeners are ready
+    if (!syncRequested.current && (location.state as { midgame?: boolean } | null)?.midgame) {
+      syncRequested.current = true;
+      socket.emit('game:request-sync');
+    }
 
     return () => {
       socket.off('game:started');
@@ -353,30 +360,7 @@ export default function Game() {
           </div>
         </div>
       )}
-      <div className="game-topbar">
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <Logo size={26} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>Song Duel</span>
-        </a>
-        <div className="volume-control">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {volume === 0
-              ? <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>
-              : volume < 0.5
-              ? <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></>
-              : <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></>
-            }
-          </svg>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.02}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-          />
-        </div>
-      </div>
+      <Topbar volume={volume} onVolumeChange={setVolume} />
 
     <div className="game-layout">
       <Scoreboard scores={scores} myId={socket.id ?? ''} guessMode={guessMode} hasYear={hasYear} />
@@ -418,7 +402,7 @@ export default function Game() {
           </div>
         ) : null}
 
-        <div className="progress-bar-wrap" style={{ width: 320 }}>
+        <div className="progress-bar-wrap">
           <div
             className="progress-bar-fill"
             style={{ width: `${progress * 100}%`, transition: phase === 'revealing' ? 'none' : 'width 0.2s linear' }}

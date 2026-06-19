@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LobbyInfo, PlayerScore, SpotifyPlaylist } from 'shared/types';
 import { useGame } from '../context/GameContext';
 import socket, { playerId } from '../socket';
+import Topbar from '../components/Topbar';
 
 interface Genre { id: number; name: string; }
 
@@ -73,6 +74,10 @@ export default function Lobby() {
       navigate(`/game/${code}`, { state: { initialScores, guessMode, hostId } });
     });
 
+    socket.on('game:join-in-progress', ({ totalSongs, initialScores, guessMode, hostId }: { totalSongs: number; initialScores: PlayerScore[]; guessMode: { title: boolean; artist: boolean; year: boolean }; hostId: string }) => {
+      navigate(`/game/${code}`, { state: { initialScores, guessMode, hostId, totalSongs, midgame: true } });
+    });
+
     return () => {
       socket.off('lobby:state');
       socket.off('lobby:playlist-added');
@@ -80,6 +85,7 @@ export default function Lobby() {
       socket.off('lobby:playlist-updated');
       socket.off('lobby:error');
       socket.off('game:started');
+      socket.off('game:join-in-progress');
     };
   }, [code, username, navigate]);
 
@@ -238,7 +244,9 @@ export default function Lobby() {
   }
 
   return (
-    <div className="lobby-layout" style={{ paddingTop: 40 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Topbar />
+    <div className="lobby-layout">
       {/* Left: players + settings */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="card" style={{ maxWidth: '100%' }}>
@@ -362,6 +370,17 @@ export default function Lobby() {
           <p className="waiting-msg">Waiting for host to start...</p>
         )}
 
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            socket.emit('lobby:leave');
+            sessionStorage.removeItem('sd_lobbyCode');
+            navigate('/');
+          }}
+        >
+          Leave Lobby
+        </button>
+
         {error && <p className="error-msg">{error}</p>}
       </div>
 
@@ -463,6 +482,7 @@ export default function Lobby() {
             })()}
         </div>
       </div>
+    </div>
     </div>
   );
 }
