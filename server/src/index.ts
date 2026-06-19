@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
 import lobbyRoutes from './routes/lobby';
 import deezerRoutes from './routes/deezer';
 import { setupSocketHandlers } from './socket';
@@ -24,8 +25,15 @@ if (!isProd) {
 
 app.use(express.json());
 
+const deezerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/lobby', lobbyRoutes);
-app.use('/api/deezer', deezerRoutes);
+app.use('/api/deezer', deezerLimiter, deezerRoutes);
 
 setupSocketHandlers(io);
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /lobby/
+Disallow: /game/
