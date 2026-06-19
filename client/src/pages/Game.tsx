@@ -51,7 +51,7 @@ export default function Game() {
   );
 
   const [volume, setVolume] = useState<number>(() => {
-    const saved = localStorage.getItem('mg_volume');
+    const saved = localStorage.getItem('sd_volume');
     return saved !== null ? parseFloat(saved) : 0.8;
   });
 
@@ -64,7 +64,7 @@ export default function Game() {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
-    localStorage.setItem('mg_volume', String(volume));
+    localStorage.setItem('sd_volume', String(volume));
   }, [volume, ready]);
 
   function playSong(previewUrl: string, duration: number, startOffsetSec = 0) {
@@ -103,8 +103,8 @@ export default function Game() {
   useEffect(() => {
     // Reconnect and rejoin if page was refreshed
     if (!socket.connected) {
-      const lobbyCode = sessionStorage.getItem('mg_lobbyCode');
-      const storedUsername = localStorage.getItem('mg_username');
+      const lobbyCode = sessionStorage.getItem('sd_lobbyCode');
+      const storedUsername = localStorage.getItem('sd_username');
       if (!lobbyCode || !storedUsername) { navigate('/'); return; }
       socket.connect();
       socket.once('connect', () => {
@@ -279,7 +279,7 @@ export default function Game() {
                 <button
                   className="btn-secondary"
                   style={{ width: '100%' }}
-                  onClick={() => { sessionStorage.removeItem('mg_lobbyCode'); navigate('/'); }}
+                  onClick={() => { sessionStorage.removeItem('sd_lobbyCode'); navigate('/'); }}
                 >
                   Back to Home
                 </button>
@@ -356,7 +356,7 @@ export default function Game() {
       <div className="game-topbar">
         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <Logo size={26} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>MusicGuessr</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>Song Duel</span>
         </a>
         <div className="volume-control">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

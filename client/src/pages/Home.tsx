@@ -14,7 +14,7 @@ export default function Home() {
 
   // Clear stored lobby on home screen — player is no longer in a game
   useEffect(() => {
-    sessionStorage.removeItem('mg_lobbyCode');
+    sessionStorage.removeItem('sd_lobbyCode');
   }, []);
 
   async function handleCreate(e: FormEvent) {
@@ -25,7 +25,7 @@ export default function Home() {
     try {
       const res = await fetch('/api/lobby', { method: 'POST' });
       const { code } = await res.json() as { code: string };
-      localStorage.setItem('mg_username', username.trim());
+      localStorage.setItem('sd_username', username.trim());
       ensureConnected();
       navigate(`/lobby/${code}`);
     } catch {
@@ -40,7 +40,7 @@ export default function Home() {
     const code = joinCode.trim().toUpperCase();
     if (!username.trim()) { setError('Enter a username first'); return; }
     if (code.length !== 6) { setError('Lobby code must be 6 characters'); return; }
-    localStorage.setItem('mg_username', username.trim());
+    localStorage.setItem('sd_username', username.trim());
     ensureConnected();
     navigate(`/lobby/${code}`);
   }
@@ -55,7 +55,7 @@ export default function Home() {
         <Logo size={88} />
         <div>
           <h1 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
-            Music<span style={{ color: 'var(--accent)' }}>Guessr</span>
+            Song<span style={{ color: 'var(--accent)' }}>Duel</span>
           </h1>
           <p style={{ color: 'var(--text-dim)', marginTop: 6 }}>
             Guess songs with friends

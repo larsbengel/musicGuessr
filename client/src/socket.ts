@@ -1,10 +1,10 @@
 import { io } from 'socket.io-client';
 
 function getPlayerId(): string {
-  let id = sessionStorage.getItem('mg_playerId');
+  let id = sessionStorage.getItem('sd_playerId');
   if (!id) {
     id = crypto.randomUUID();
-    sessionStorage.setItem('mg_playerId', id);
+    sessionStorage.setItem('sd_playerId', id);
   }
   return id;
 }

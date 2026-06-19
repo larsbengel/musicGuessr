@@ -45,7 +45,7 @@ export default function Lobby() {
     if (!username) return;
 
     if (!socket.connected) socket.connect();
-    sessionStorage.setItem('mg_lobbyCode', code ?? '');
+    sessionStorage.setItem('sd_lobbyCode', code ?? '');
 
     socket.emit('lobby:join', { code, username, playerId }, (res: { error?: string }) => {
       if (res.error) setError(res.error);
