@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /lobby/
 Disallow: /game/
+
+Sitemap: https://www.songduel.de/sitemap.xml
