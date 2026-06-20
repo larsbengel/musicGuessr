@@ -34,7 +34,9 @@ export default function Topbar({ volume: volumeProp, onVolumeChange }: TopbarPro
     <div className="game-topbar">
       <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <Logo size={40} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', letterSpacing: 1 }}>SongDuel</span>
+        <span style={{ fontSize: 16, fontWeight: 600, fontFamily: "'Orbitron', sans-serif" }}>
+          <span style={{ color: 'var(--logo-red)' }}>Song</span><span style={{ color: 'var(--accent)' }}>Duel</span>
+        </span>
       </a>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
         <LanguageToggle />
