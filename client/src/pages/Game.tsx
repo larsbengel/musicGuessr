@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ChatMessage,
   GameCurrentState,
@@ -23,6 +24,7 @@ export default function Game() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const [phase, setPhase] = useState<Phase>('waiting');
   const [ready, setReady] = useState(false);
@@ -233,7 +235,7 @@ export default function Game() {
     if (cats.length > 0) {
       const label = cats.length === 1 ? cats[0] : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
-      setGuessToast(`+${result.points} pts · ${label}`);
+      setGuessToast(`+${result.points} ${t('game.pts')} · ${label}`);
       toastTimeout.current = setTimeout(() => setGuessToast(null), 2000);
       if (result.revealedTitle !== undefined) setMyTitle(result.revealedTitle);
       if (result.revealedArtists !== undefined) setMyArtists(result.revealedArtists);
@@ -251,10 +253,10 @@ export default function Game() {
     return (
       <div className="page" style={{ justifyContent: 'flex-start', paddingTop: 48 }}>
         <div className="game-over fade-in">
-          <h1>Game Over!</h1>
+          <h1>{t('game.gameOver')}</h1>
           <div className="game-over-columns">
             <div>
-              <p className="section-title" style={{ marginBottom: 12 }}>Final scores</p>
+              <p className="section-title" style={{ marginBottom: 12 }}>{t('game.finalScores')}</p>
               <div className="score-list" style={{ marginBottom: 24 }}>
                 {finalScores.map((s, i) => (
                   <div key={s.playerId} className="score-item">
@@ -262,7 +264,7 @@ export default function Game() {
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
                     </span>
                     <span className="score-username">{s.username}</span>
-                    <span className="score-pts">{s.score} pts</span>
+                    <span className="score-pts">{s.score} {t('game.pts')}</span>
                   </div>
                 ))}
               </div>
@@ -273,7 +275,7 @@ export default function Game() {
                     style={{ width: '100%' }}
                     onClick={() => socket.emit('lobby:play-again')}
                   >
-                    Play Again
+                    {t('game.playAgain')}
                   </button>
                 )}
                 <button
@@ -281,20 +283,20 @@ export default function Game() {
                   style={{ width: '100%' }}
                   onClick={() => navigate(`/lobby/${code}`)}
                 >
-                  Back to Lobby
+                  {t('common.backToLobby')}
                 </button>
                 <button
                   className="btn-secondary"
                   style={{ width: '100%' }}
                   onClick={() => { sessionStorage.removeItem('sd_lobbyCode'); navigate('/'); }}
                 >
-                  Back to Home
+                  {t('common.backToHome')}
                 </button>
               </div>
             </div>
 
             <div>
-              <p className="section-title" style={{ marginBottom: 12 }}>Songs played</p>
+              <p className="section-title" style={{ marginBottom: 12 }}>{t('game.songsPlayed')}</p>
               <div className="songs-played-list">
                 {playedSongs.map((song, i) => (
                   <div key={song.id} className="songs-played-item">
@@ -354,9 +356,9 @@ export default function Game() {
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, pointerEvents: 'none' }}>
             <div style={{ fontSize: 44 }}>🎵</div>
             <h2 style={{ fontSize: 22, margin: 0 }}>
-              {phase === 'playing' ? 'Song in progress' : 'Game starting soon'}
+              {phase === 'playing' ? t('game.songInProgress') : t('game.gameStartingSoon')}
             </h2>
-            <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: 14 }}>Click anywhere to enable audio</p>
+            <p style={{ color: 'var(--text-dim)', margin: 0, fontSize: 14 }}>{t('game.clickForAudio')}</p>
           </div>
         </div>
       )}
@@ -366,14 +368,14 @@ export default function Game() {
       <Scoreboard scores={scores} myId={socket.id ?? ''} guessMode={guessMode} hasYear={hasYear} />
 
       <div className="game-center">
-        <p className="song-counter">Song {songIndex + 1} of {totalSongs}</p>
+        <p className="song-counter">{t('game.songOf', { current: songIndex + 1, total: totalSongs })}</p>
 
         <div className="guess-categories">
-          {guessMode.title && <span className={`guess-cat-chip ${myTitle ? 'solved' : ''}`}>title</span>}
-          {guessMode.artist && <span className={`guess-cat-chip ${myArtists ? 'solved' : ''}`}>artist</span>}
+          {guessMode.title && <span className={`guess-cat-chip ${myTitle ? 'solved' : ''}`}>{t('common.categories.title')}</span>}
+          {guessMode.artist && <span className={`guess-cat-chip ${myArtists ? 'solved' : ''}`}>{t('common.categories.artist')}</span>}
           {guessMode.year && (
             <span className={`guess-cat-chip ${!hasYear ? 'unavailable' : myYear ? 'solved' : ''}`} title={!hasYear ? 'No year data for this song' : undefined}>
-              year{!hasYear && ' —'}
+              {t('common.categories.year')}{!hasYear && ' —'}
             </span>
           )}
         </div>

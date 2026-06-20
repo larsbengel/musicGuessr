@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GuessCategory, PlayerScore } from 'shared/types';
 import { playerColor } from '../utils/playerColor';
 
@@ -19,12 +20,13 @@ const CATEGORY_ICON: Record<GuessCategory, string> = {
 const CATEGORIES: GuessCategory[] = ['title', 'artist', 'year'];
 
 export default function Scoreboard({ scores, myId, guessMode, hasYear }: Props) {
+  const { t } = useTranslation();
   const sorted = [...scores].sort((a, b) => b.score - a.score);
   const activeCategories = CATEGORIES.filter((c) => guessMode[c] && (c !== 'year' || hasYear));
 
   return (
     <div className="scoreboard-panel">
-      <h3>Scoreboard</h3>
+      <h3>{t('scoreboard.title')}</h3>
       <div className="score-list">
         {sorted.map((s, i) => (
           <div
@@ -52,7 +54,7 @@ export default function Scoreboard({ scores, myId, guessMode, hasYear }: Props) 
                       <span
                         key={cat}
                         className={`score-cat-badge ${solved ? 'solved' : ''}`}
-                        title={cat}
+                        title={t(`common.categories.${cat}`)}
                       >
                         {CATEGORY_ICON[cat]}
                         {solved && <span className="score-cat-pts">+{pts}</span>}
@@ -65,7 +67,7 @@ export default function Scoreboard({ scores, myId, guessMode, hasYear }: Props) 
           </div>
         ))}
         {sorted.length === 0 && (
-          <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>No scores yet</p>
+          <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>{t('scoreboard.noScores')}</p>
         )}
       </div>
     </div>

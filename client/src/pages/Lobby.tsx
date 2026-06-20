@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LobbyInfo, PlayerScore, SpotifyPlaylist } from 'shared/types';
 import { useGame } from '../context/GameContext';
 import socket, { playerId } from '../socket';
@@ -16,6 +17,7 @@ export default function Lobby() {
   const { code } = useParams<{ code: string }>();
   const { username, setUsername } = useGame();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [lobby, setLobby] = useState<LobbyInfo | null>(null);
   const [error, setError] = useState('');
@@ -58,10 +60,10 @@ export default function Lobby() {
       fetch('/api/spotify/featured')
         .then((r) => r.json())
         .then((d: { playlists?: SpotifyPlaylist[]; error?: string }) => {
-          if (d.error) setSearchError('Spotify API is not available at the moment.');
+          if (d.error) setSearchError(t('lobby.spotifyUnavailable'));
           setBrowseResults(d.playlists ?? []);
         })
-        .catch(() => setSearchError('Could not reach Spotify.'));
+        .catch(() => setSearchError(t('lobby.spotifyError')));
     }
   }, [searchSource]);
 
@@ -173,10 +175,10 @@ export default function Lobby() {
     fetch(`${endpoint}?q=${encodeURIComponent(q)}`)
       .then((r) => r.json())
       .then((data: { playlists?: SpotifyPlaylist[]; error?: string }) => {
-        if (data.error) setSearchError(searchSource === 'spotify' ? 'Spotify API is not available at the moment.' : 'Search failed.');
+        if (data.error) setSearchError(searchSource === 'spotify' ? t('lobby.spotifyUnavailable') : t('lobby.searchFailed'));
         setSearchResults(data.playlists ?? []);
       })
-      .catch(() => { setSearchError('Search failed.'); setSearchResults([]); })
+      .catch(() => { setSearchError(t('lobby.searchFailed')); setSearchResults([]); })
       .finally(() => setSearching(false));
   }
 
@@ -236,9 +238,9 @@ export default function Lobby() {
     return (
       <div className="page">
         <div className="card">
-          <h1 style={{ marginBottom: 8 }}>Join Lobby</h1>
+          <h1 style={{ marginBottom: 8 }}>{t('lobby.joinLobby')}</h1>
           <p style={{ color: 'var(--text-dim)', fontSize: 14, marginBottom: 20 }}>
-            You've been invited to lobby{' '}
+            {t('lobby.invitedTo')}{' '}
             <strong style={{ color: 'var(--accent)', letterSpacing: 2 }}>{code}</strong>
           </p>
           <form
@@ -249,9 +251,9 @@ export default function Lobby() {
             style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
           >
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Your Name</label>
+              <label>{t('common.yourName')}</label>
               <input
-                placeholder="Enter username..."
+                placeholder={t('common.enterUsername')}
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 maxLength={20}
@@ -259,7 +261,7 @@ export default function Lobby() {
               />
             </div>
             <button type="submit" className="btn-primary" disabled={!nameInput.trim()}>
-              Join
+              {t('common.join')}
             </button>
           </form>
         </div>
@@ -273,7 +275,7 @@ export default function Lobby() {
         <div className="card">
           <p style={{ color: 'var(--danger)' }}>{error}</p>
           <button className="btn-secondary" style={{ marginTop: 16 }} onClick={() => navigate('/')}>
-            Back to Home
+            {t('common.backToHome')}
           </button>
         </div>
       </div>
@@ -281,7 +283,7 @@ export default function Lobby() {
   }
 
   if (!lobby) {
-    return <div className="page"><p className="waiting-msg">Joining lobby...</p></div>;
+    return <div className="page"><p className="waiting-msg">{t('lobby.joiningLobby')}</p></div>;
   }
 
   return (
@@ -317,16 +319,16 @@ export default function Lobby() {
               )}
             </button>
           </div>
-          <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 6 }}>Share to invite friends</p>
+          <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 6 }}>{t('lobby.shareToInvite')}</p>
         </div>
 
         <div className="card" style={{ maxWidth: '100%' }}>
-          <p className="section-title">Players ({lobby.players.length})</p>
+          <p className="section-title">{t('lobby.players')} ({lobby.players.length})</p>
           <ul className="player-list">
             {lobby.players.map((p) => (
               <li key={p.id} className="player-item">
                 {p.username}
-                {p.id === myId && <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 4 }}>(you)</span>}
+                {p.id === myId && <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 4 }}>({t('lobby.you')})</span>}
                 {p.isHost && <span className="host-badge">HOST</span>}
               </li>
             ))}
@@ -335,17 +337,17 @@ export default function Lobby() {
 
         {isHost ? (
           <div className="card" style={{ maxWidth: '100%' }}>
-            <p className="section-title">Songs per game</p>
+            <p className="section-title">{t('lobby.songsPerGame')}</p>
             <select
               value={lobby.settings.songCount}
               onChange={(e) => updateSongCount(Number(e.target.value))}
             >
               {[5, 10, 15, 20, 25].map((n) => (
-                <option key={n} value={n}>{n} songs</option>
+                <option key={n} value={n}>{t('lobby.nSongs', { count: n })}</option>
               ))}
             </select>
             <p className="section-title" style={{ marginTop: 16 }}>
-              Round length <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{lobby.settings.songDuration / 1000}s</span>
+              {t('lobby.roundLength')} <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{lobby.settings.songDuration / 1000}s</span>
             </p>
             <input
               type="range"
@@ -359,7 +361,7 @@ export default function Lobby() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
               <span>5s</span><span>30s</span>
             </div>
-            <p className="section-title" style={{ marginTop: 16 }}>What to guess</p>
+            <p className="section-title" style={{ marginTop: 16 }}>{t('lobby.whatToGuess')}</p>
             <div style={{ display: 'flex', gap: 8 }}>
               {(['title', 'artist', 'year'] as const).map((cat) => {
                 const guessMode = lobby.settings.guessMode ?? { title: true, artist: true, year: false };
@@ -380,10 +382,9 @@ export default function Lobby() {
                       fontWeight: 600,
                       fontSize: 13,
                       cursor: isLast ? 'default' : 'pointer',
-                      textTransform: 'capitalize',
                     }}
                   >
-                    {cat}
+                    {t(`common.categories.${cat}`)}
                   </button>
                 );
               })}
@@ -391,10 +392,15 @@ export default function Lobby() {
           </div>
         ) : (
           <div className="card" style={{ maxWidth: '100%' }}>
-            <p className="section-title">Settings</p>
-            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>{lobby.settings.songCount} songs · {lobby.settings.songDuration / 1000}s rounds</p>
+            <p className="section-title">{t('lobby.settings')}</p>
             <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
-              Guess: {(['title', 'artist', 'year'] as const).filter((c) => (lobby.settings.guessMode ?? { title: true, artist: true, year: false })[c]).join(' & ')}
+              {t('lobby.nSongsRounds', { count: lobby.settings.songCount, duration: lobby.settings.songDuration / 1000 })}
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0' }}>
+              {t('lobby.guess')}: {(['title', 'artist', 'year'] as const)
+                .filter((c) => (lobby.settings.guessMode ?? { title: true, artist: true, year: false })[c])
+                .map((c) => t(`common.categories.${c}`))
+                .join(' & ')}
             </p>
           </div>
         )}
@@ -405,10 +411,10 @@ export default function Lobby() {
             onClick={startGame}
             disabled={starting || lobby.playlists.length === 0}
           >
-            {starting ? 'Loading songs...' : 'Start Game'}
+            {starting ? t('lobby.loadingSongs') : t('lobby.startGame')}
           </button>
         ) : (
-          <p className="waiting-msg">Waiting for host to start...</p>
+          <p className="waiting-msg">{t('lobby.waitingForHost')}</p>
         )}
 
         <button
@@ -419,7 +425,7 @@ export default function Lobby() {
             navigate('/');
           }}
         >
-          Leave Lobby
+          {t('lobby.leaveLobby')}
         </button>
 
         {error && <p className="error-msg">{error}</p>}
@@ -429,7 +435,7 @@ export default function Lobby() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {lobby.playlists.length > 0 && (
           <div className="card" style={{ maxWidth: '100%' }}>
-            <p className="section-title">Selected Playlists ({lobby.playlists.length})</p>
+            <p className="section-title">{t('lobby.selectedPlaylists')} ({lobby.playlists.length})</p>
             <div className="playlist-grid">
               {lobby.playlists.map((p) => (
                 <div key={p.id} className="playlist-card">
@@ -443,9 +449,9 @@ export default function Lobby() {
                       <span>
                         {p.playableCount !== undefined
                           ? p.source === 'spotify'
-                            ? `~${p.playableCount} tracks`
-                            : `${p.playableCount} playable`
-                          : <span style={{ opacity: 0.5 }}>checking...</span>}
+                            ? t('lobby.approxTracks', { count: p.playableCount })
+                            : t('lobby.nPlayable', { count: p.playableCount })
+                          : <span style={{ opacity: 0.5 }}>{t('lobby.checkingTracks')}</span>}
                       </span>
                       {p.source === 'spotify' && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="#1DB954" style={{ flexShrink: 0 }}>
@@ -464,7 +470,7 @@ export default function Lobby() {
         )}
 
         <div className="card" style={{ maxWidth: '100%' }}>
-            <p className="section-title">Add Playlists</p>
+            <p className="section-title">{t('lobby.addPlaylists')}</p>
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {(['deezer', 'spotify'] as const).map((src) => (
                 <button
@@ -495,7 +501,7 @@ export default function Lobby() {
             <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <input
-                  placeholder="Search playlists..."
+                  placeholder={t('lobby.searchPlaylists')}
                   value={searchQuery}
                   onChange={(e) => handleSearchInput(e.target.value)}
                   style={{ paddingRight: searchQuery ? 32 : undefined }}
@@ -513,7 +519,7 @@ export default function Lobby() {
                 )}
               </div>
               <button type="submit" className="btn-secondary" style={{ width: 'auto', whiteSpace: 'nowrap' }}>
-                Search
+                {t('common.search')}
               </button>
             </form>
 
@@ -531,19 +537,19 @@ export default function Lobby() {
               </div>
             )}
 
-            {searching && <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>Loading...</p>}
+            {searching && <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>{t('lobby.loading')}</p>}
             {!searching && searchError && (
               <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8 }}>{searchError}</p>
             )}
 
             {(() => {
               const results = searchQuery ? searchResults : browseResults;
-              const label = searchQuery ? null : selectedGenre ? selectedGenre.name : 'Featured';
+              const label = searchQuery ? null : selectedGenre ? selectedGenre.name : t('lobby.featured');
               return results.length > 0 ? (
                 <>
                   {label && <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 10 }}>{label}</p>}
                   {atLimit && (
-                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '8px 0 4px' }}>Maximum of 8 playlists reached.</p>
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '8px 0 4px' }}>{t('lobby.maxPlaylists')}</p>
                   )}
                   <div className="search-results">
                     {results.map((p) => {
@@ -562,7 +568,7 @@ export default function Lobby() {
                           }
                           <div className="search-result-info">
                             <div className="search-result-name">{p.name}</div>
-                            <div className="search-result-owner">by {p.owner} · {p.trackCount} tracks</div>
+                            <div className="search-result-owner">{t('lobby.byOwner', { owner: p.owner, count: p.trackCount })}</div>
                           </div>
                           <span style={{ color: 'var(--accent)', fontSize: 20, flexShrink: 0 }}>+</span>
                         </div>

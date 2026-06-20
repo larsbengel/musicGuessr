@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChatMessage } from 'shared/types';
 import { playerColor } from '../utils/playerColor';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const lastSent = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -47,6 +49,14 @@ export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
     }
   }
 
+  function getGuessLabel(raw: ChatMessage['correct']): string {
+    const cats: string[] = Array.isArray(raw) ? raw
+      : raw === 'both' ? ['title', 'artist']
+      : raw ? [raw] : [];
+    const key = [...cats].sort().join('_');
+    return t(`chat.labels.${key}` as Parameters<typeof t>[0]);
+  }
+
   return (
     <div className="chat-panel">
       <div className="chat-messages">
@@ -54,7 +64,7 @@ export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
           if (msg.divider !== undefined) {
             return (
               <div key={i} className="chat-divider">
-                <span>Song {msg.divider}</span>
+                <span>{t('chat.song')} {msg.divider}</span>
               </div>
             );
           }
@@ -62,7 +72,7 @@ export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
           if (msg.system && msg.close) {
             return (
               <div key={i} className="chat-msg chat-system chat-system-close">
-                <strong style={{ color }}>{msg.username}</strong> is close!
+                <strong style={{ color }}>{msg.username}</strong> {t('chat.isClose')}
               </div>
             );
           }
@@ -71,11 +81,11 @@ export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
             const cats: string[] = Array.isArray(raw) ? raw
               : raw === 'both' ? ['title', 'artist']
               : raw ? [raw] : [];
-            const label = cats.length === 1 ? `the ${cats[0]}` : cats.slice(0, -1).join(', ') + ' & ' + cats[cats.length - 1];
             const cssKey = cats.length === 1 ? cats[0] : 'both';
+            const label = getGuessLabel(raw);
             return (
               <div key={i} className={`chat-msg chat-system chat-system-${cssKey}`}>
-                <strong style={{ color }}>{msg.username}</strong> guessed {label}!
+                <strong style={{ color }}>{msg.username}</strong> {t('chat.guessedSuffix', { label })}
               </div>
             );
           }
@@ -97,7 +107,7 @@ export default function Chat({ messages, onSend, disabled, songIndex }: Props) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? 'Waiting for next song...' : 'Type your guess...'}
+          placeholder={disabled ? t('chat.waitingForSong') : t('chat.typeGuess')}
           disabled={disabled}
           autoComplete="off"
         />
