@@ -47,6 +47,7 @@ export interface SongStartPayload {
   previewUrl: string;
   duration: number; // ms
   hasYear: boolean;
+  yearOptions?: number[];
 }
 
 export interface PlayerScore {
@@ -99,4 +100,5 @@ export interface GameCurrentState {
   scores: PlayerScore[];
   guessMode: { title: boolean; artist: boolean; year: boolean };
   hasYear: boolean;
+  yearOptions?: number[];
 }

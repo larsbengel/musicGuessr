@@ -16,10 +16,12 @@ export interface GameState {
   titleGuessers: Set<string>;   // socket IDs that already scored the title this song
   artistGuessers: Set<string>;  // socket IDs that already scored the artist this song
   yearGuessers: Set<string>;    // socket IDs that already scored the year this song
+  yearAttempted: Set<string>;   // socket IDs that have used their one year guess this song
   songTimer: NodeJS.Timeout | null;
   betweenSongs: boolean;
   songScores: Map<string, number>;
   categoryScores: Map<string, Partial<Record<GuessCategory, number>>>;
+  currentYearOptions?: number[];
 }
 
 export interface LobbyState {

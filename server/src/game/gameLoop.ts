@@ -28,6 +28,7 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
     titleGuessers: new Set(),
     artistGuessers: new Set(),
     yearGuessers: new Set(),
+    yearAttempted: new Set(),
     songTimer: null,
     betweenSongs: true,
     songScores: new Map(),
@@ -51,6 +52,30 @@ export async function startGame(io: Server, lobby: LobbyState): Promise<void> {
   setTimeout(() => playNextSong(io, lobby.code), GAME_START_DELAY);
 }
 
+function generateYearOptions(year: number): number[] {
+  const now = new Date().getFullYear();
+  const min = Math.max(1960, year - 10);
+  const max = Math.min(now, year + 10);
+  const options = new Set<number>([year]);
+
+  let attempts = 0;
+  while (options.size < 4 && attempts < 200) {
+    options.add(Math.floor(Math.random() * (max - min + 1)) + min);
+    attempts++;
+  }
+  // Expand range if the ±10 window was too narrow
+  while (options.size < 4) {
+    options.add(Math.floor(Math.random() * (now - 1960 + 1)) + 1960);
+  }
+
+  const arr = [...options];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function playNextSong(io: Server, code: string): void {
   const lobby = getLobby(code);
   if (!lobby?.game) return;
@@ -67,9 +92,13 @@ function playNextSong(io: Server, code: string): void {
   lobby.game.titleGuessers = new Set();
   lobby.game.artistGuessers = new Set();
   lobby.game.yearGuessers = new Set();
+  lobby.game.yearAttempted = new Set();
   lobby.game.betweenSongs = false;
   lobby.game.songScores = new Map();
   lobby.game.categoryScores = new Map();
+  lobby.game.currentYearOptions = (lobby.settings.guessMode.year && song.year !== undefined)
+    ? generateYearOptions(song.year)
+    : undefined;
 
   const payload: SongStartPayload = {
     songIndex: lobby.game.currentSongIndex,
@@ -77,6 +106,7 @@ function playNextSong(io: Server, code: string): void {
     previewUrl: song.previewUrl,
     duration: lobby.settings.songDuration,
     hasYear: song.year !== undefined,
+    yearOptions: lobby.game.currentYearOptions,
   };
 
   io.to(code).emit('game:song-start', payload);

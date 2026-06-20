@@ -51,6 +51,8 @@ export default function Game() {
   const [hostId, setHostId] = useState<string | null>(
     (location.state as { hostId?: string } | null)?.hostId ?? null
   );
+  const [yearOptions, setYearOptions] = useState<number[] | null>(null);
+  const [pendingYearGuess, setPendingYearGuess] = useState(false);
 
   const [volume, setVolume] = useState<number>(() => {
     const saved = localStorage.getItem('sd_volume');
@@ -132,6 +134,8 @@ export default function Game() {
       setMyArtists(null);
       setMyAlbumArt(undefined);
       setMyYear(null);
+      setYearOptions(payload.yearOptions ?? null);
+      setPendingYearGuess(false);
       setPhase('playing');
       setProgress(0);
       setHasYear(payload.hasYear);
@@ -195,6 +199,8 @@ export default function Game() {
       songStartTime.current = Date.now() - state.elapsedMs;
       if (state.guessMode) setGuessMode(state.guessMode);
       setHasYear(state.hasYear);
+      setYearOptions(state.yearOptions ?? null);
+      setPendingYearGuess(false);
 
       if (ready) {
         playSong(state.previewUrl, state.duration);
@@ -410,6 +416,24 @@ export default function Game() {
             style={{ width: `${progress * 100}%`, transition: phase === 'revealing' ? 'none' : 'width 0.2s linear' }}
           />
         </div>
+
+        {guessMode.year && hasYear && yearOptions && phase === 'playing' && (
+          <div className="year-options">
+            {yearOptions.map((yr) => (
+              <button
+                key={yr}
+                className={`year-option-btn${myYear === yr ? ' solved' : ''}`}
+                disabled={!!myYear || pendingYearGuess}
+                onClick={() => {
+                  setPendingYearGuess(true);
+                  sendGuess(String(yr));
+                }}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
+        )}
 
         {guessToast && (
           <div className="guess-toast fade-in">{guessToast}</div>

@@ -29,6 +29,7 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       scores,
       guessMode: lobby.settings.guessMode,
       hasYear: song.year !== undefined,
+      yearOptions: game.currentYearOptions,
     };
     socket.emit('game:current-state', payload);
   });
@@ -56,6 +57,16 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       lobby.settings.guessMode
     );
 
+    // Enforce one year attempt per song — but only when the input isn't also a valid title/artist guess
+    const isYearText = /^\d{4}$/.test(text.trim()) && lobby.settings.guessMode.year;
+    if (isYearText && !titleHit && !artistHit) {
+      if (game.yearAttempted.has(socket.id)) {
+        socket.emit('game:guess-result', { correct: [], points: 0, totalScore: player.score });
+        return;
+      }
+      game.yearAttempted.add(socket.id);
+    }
+
     const correct: GuessCategory[] = [];
     let pointsGained = 0;
 
@@ -71,9 +82,9 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       game.artistGuessers.add(socket.id);
       correct.push('artist');
     }
+    const YEAR_POINTS = 25;
     if (yearHit) {
-      const pts = calculatePoints(50, elapsed, lobby.settings.songDuration);
-      pointsGained += Math.round(pts * (game.yearGuessers.size === 0 ? 1.5 : 1));
+      pointsGained += YEAR_POINTS;
       game.yearGuessers.add(socket.id);
       correct.push('year');
     }
@@ -85,7 +96,7 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
       // guessers sets already include this player at this point, so size===1 means first guesser
       const titlePts = titleHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.titleGuessers.size === 1 ? 1.5 : 1)) : 0;
       const artistPts = artistHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.artistGuessers.size === 1 ? 1.5 : 1)) : 0;
-      const yearPts = yearHit ? Math.round(calculatePoints(50, elapsed, lobby.settings.songDuration) * (game.yearGuessers.size === 1 ? 1.5 : 1)) : 0;
+      const yearPts = yearHit ? YEAR_POINTS : 0;
       const catScores = game.categoryScores.get(socket.id) ?? {};
       if (titleHit) catScores.title = (catScores.title ?? 0) + titlePts;
       if (artistHit) catScores.artist = (catScores.artist ?? 0) + artistPts;
@@ -142,6 +153,12 @@ export function setupGameHandlers(io: Server, socket: Socket): void {
         system: true,
         close: true,
       } satisfies ChatMessage);
+      return;
+    }
+
+    // Suppress year guesses from chat — feedback is handled by the button UI
+    if (isYearText) {
+      socket.emit('game:guess-result', { correct: [], points: 0, totalScore: player.score });
       return;
     }
 
