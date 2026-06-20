@@ -131,7 +131,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       const lobby = getPlayerLobby(socket);
       if (!lobby) { callback?.({ error: 'Not in a lobby' }); return; }
       if (lobby.playlists.find((p) => p.id === playlist.id)) { callback?.({}); return; }
-      if (lobby.playlists.length >= 10) { callback?.({ error: 'Maximum 10 playlists' }); return; }
+      if (lobby.playlists.length >= 8) { callback?.({ error: 'Maximum 8 playlists' }); return; }
 
       lobby.playlists.push(playlist);
       io.to(lobby.code).emit('lobby:playlist-added', playlist);

@@ -191,7 +191,10 @@ export default function Lobby() {
     }
   }
 
+  const atLimit = (lobby?.playlists.length ?? 0) >= 8;
+
   function addPlaylist(playlist: SpotifyPlaylist) {
+    if (atLimit) return;
     socket.emit('lobby:add-playlist', playlist, (res: { error?: string }) => {
       if (res.error) setError(res.error);
     });
@@ -539,20 +542,32 @@ export default function Lobby() {
               return results.length > 0 ? (
                 <>
                   {label && <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 10 }}>{label}</p>}
+                  {atLimit && (
+                    <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '8px 0 4px' }}>Maximum of 8 playlists reached.</p>
+                  )}
                   <div className="search-results">
-                    {results.map((p) => (
-                      <div key={p.id} className="search-result-item" onClick={() => addPlaylist(p)}>
-                        {p.imageUrl
-                          ? <img src={p.imageUrl} alt={p.name} />
-                          : <div style={{ width: 40, height: 40, background: 'var(--surface-3)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🎵</div>
-                        }
-                        <div className="search-result-info">
-                          <div className="search-result-name">{p.name}</div>
-                          <div className="search-result-owner">by {p.owner} · {p.trackCount} tracks</div>
+                    {results.map((p) => {
+                      const alreadyAdded = lobby?.playlists.some((pl) => pl.id === p.id);
+                      const disabled = atLimit && !alreadyAdded;
+                      return (
+                        <div
+                          key={p.id}
+                          className="search-result-item"
+                          onClick={() => addPlaylist(p)}
+                          style={disabled ? { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' } : undefined}
+                        >
+                          {p.imageUrl
+                            ? <img src={p.imageUrl} alt={p.name} />
+                            : <div style={{ width: 40, height: 40, background: 'var(--surface-3)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🎵</div>
+                          }
+                          <div className="search-result-info">
+                            <div className="search-result-name">{p.name}</div>
+                            <div className="search-result-owner">by {p.owner} · {p.trackCount} tracks</div>
+                          </div>
+                          <span style={{ color: 'var(--accent)', fontSize: 20, flexShrink: 0 }}>+</span>
                         </div>
-                        <span style={{ color: 'var(--accent)', fontSize: 20, flexShrink: 0 }}>+</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               ) : null;
