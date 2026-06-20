@@ -54,8 +54,8 @@ export default function Home() {
 
   return (
     <div className="page">
-      <div style={{ textAlign: 'center', marginBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <Logo size={88} />
+      <div style={{ textAlign: 'center', marginBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+        <div style={{ marginBottom: -28 }}><Logo size={220} /></div>
         <div>
           <h1 style={{ fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
             Song<span style={{ color: 'var(--accent)' }}>Duel</span>
