@@ -91,7 +91,7 @@ export default function Game() {
       'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
     audioRef.current.play().then(() => {
       audioRef.current!.pause();
-      audioRef.current!.src = '';
+      audioRef.current!.removeAttribute('src');
       setReady(true);
       if (pendingPreviewUrl.current) {
         const elapsedSec = (Date.now() - songStartTime.current) / 1000;
@@ -157,7 +157,7 @@ export default function Game() {
 
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        audioRef.current.removeAttribute('src');
       }
       if (progressInterval.current) clearInterval(progressInterval.current);
     });

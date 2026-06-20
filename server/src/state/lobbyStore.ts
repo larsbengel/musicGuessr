@@ -1,4 +1,5 @@
 import { type GuessCategory, LobbyInfo, Player, Song, SpotifyPlaylist } from '../../../shared/types';
+import { SpotifyTrackInfo } from '../services/spotify';
 
 export interface PlayerState {
   id: string;       // socket.id — changes on reconnect
@@ -26,6 +27,7 @@ export interface LobbyState {
   players: Map<string, PlayerState>;    // socket.id → PlayerState
   playerIds: Map<string, string>;       // stable playerId → current socket.id
   playlists: SpotifyPlaylist[];
+  spotifyTracks: Map<string, SpotifyTrackInfo[]>; // playlistId → cached Spotify track list
   state: 'waiting' | 'playing' | 'ended';
   hostId: string;
   settings: {
@@ -58,6 +60,7 @@ export function createLobby(): string {
     players: new Map(),
     playerIds: new Map(),
     playlists: [],
+    spotifyTracks: new Map(),
     state: 'waiting',
     hostId: '',
     settings: {

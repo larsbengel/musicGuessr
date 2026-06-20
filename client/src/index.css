@@ -118,7 +118,7 @@ label {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 20px;
-  max-width: 900px;
+  max-width: 948px;
   width: 100%;
   margin: 0 auto;
   padding: 24px;
@@ -155,7 +155,7 @@ label {
 
 .playlist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 12px;
 }
@@ -185,6 +185,7 @@ label {
 }
 .playlist-card-info {
   padding: 8px;
+  overflow: hidden;
 }
 .playlist-card-name {
   font-size: 12px;
@@ -197,6 +198,9 @@ label {
   font-size: 11px;
   color: var(--text-dim);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .playlist-card .remove-btn {
   position: absolute;
@@ -245,17 +249,21 @@ label {
   gap: 8px;
   margin-top: 10px;
   max-height: 260px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 .search-result-item {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
   background: var(--surface-2);
   border-radius: var(--radius);
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.15s;
+  box-sizing: border-box;
 }
 .search-result-item:hover { background: var(--surface-3); }
 .search-result-item img {
@@ -265,7 +273,7 @@ label {
   object-fit: cover;
   flex-shrink: 0;
 }
-.search-result-info { flex: 1; min-width: 0; }
+.search-result-info { flex: 1; min-width: 0; overflow: hidden; }
 .search-result-name {
   font-size: 13px;
   font-weight: 600;
@@ -276,6 +284,9 @@ label {
 .search-result-owner {
   font-size: 11px;
   color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Game */
@@ -698,6 +709,13 @@ label {
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
 
 body { overflow-x: hidden; }
+
+/* Wide desktop: lock right column to prevent layout shifts */
+@media (min-width: 949px) {
+  .lobby-layout {
+    grid-template-columns: 280px 600px;
+  }
+}
 
 /* Mobile */
 @media (max-width: 640px) {

@@ -7,6 +7,7 @@ import {
 } from '../state/lobbyStore';
 import { startGame, cleanupLobby } from '../game/gameLoop';
 import { getPlaylistTracks } from '../services/deezer';
+import { getPlaylistTracks as getSpotifyPlaylistTracks } from '../services/spotify';
 
 export function setupLobbyHandlers(io: Server, socket: Socket): void {
   socket.on(
@@ -136,14 +137,27 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       io.to(lobby.code).emit('lobby:playlist-added', playlist);
       callback?.({});
 
-      // Fetch playable count in background and notify clients when ready
-      getPlaylistTracks(playlist.id).then((tracks) => {
-        const idx = lobby.playlists.findIndex((p) => p.id === playlist.id);
-        if (idx !== -1) {
-          lobby.playlists[idx].playableCount = tracks.length;
-          io.to(lobby.code).emit('lobby:playlist-updated', lobby.playlists[idx]);
-        }
-      }).catch(() => null);
+      if (playlist.source === 'spotify') {
+        // Fetch and cache Spotify tracks (with ISRCs) in the background.
+        // playableCount shows Spotify's track count as an estimate (Deezer resolution happens at game start).
+        getSpotifyPlaylistTracks(playlist.id).then((tracks) => {
+          lobby.spotifyTracks.set(playlist.id, tracks);
+          const idx = lobby.playlists.findIndex((p) => p.id === playlist.id);
+          if (idx !== -1) {
+            lobby.playlists[idx].playableCount = tracks.length;
+            io.to(lobby.code).emit('lobby:playlist-updated', lobby.playlists[idx]);
+          }
+        }).catch(() => null);
+      } else {
+        // Deezer: fetch to get exact playable count (tracks with preview URLs)
+        getPlaylistTracks(playlist.id).then((tracks) => {
+          const idx = lobby.playlists.findIndex((p) => p.id === playlist.id);
+          if (idx !== -1) {
+            lobby.playlists[idx].playableCount = tracks.length;
+            io.to(lobby.code).emit('lobby:playlist-updated', lobby.playlists[idx]);
+          }
+        }).catch(() => null);
+      }
     }
   );
 
@@ -155,6 +169,7 @@ export function setupLobbyHandlers(io: Server, socket: Socket): void {
       if (lobby.hostId !== socket.id) { callback?.({ error: 'Only the host can change playlists' }); return; }
 
       lobby.playlists = lobby.playlists.filter((p) => p.id !== playlistId);
+      lobby.spotifyTracks.delete(playlistId);
       io.to(lobby.code).emit('lobby:playlist-removed', { playlistId });
       callback?.({});
     }

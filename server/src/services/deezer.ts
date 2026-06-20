@@ -7,6 +7,17 @@ const deezer = axios.create({
   headers: { 'Accept-Language': 'en' },
 });
 
+// Deezer returns HTTP 200 even for errors — check the body and throw so callers fail cleanly
+deezer.interceptors.response.use((response) => {
+  if (response.data?.error) {
+    const { code, message } = response.data.error;
+    const err = new Error(message ?? 'Deezer API error') as Error & { deezerCode: number };
+    err.deezerCode = code as number;
+    throw err;
+  }
+  return response;
+});
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapPlaylist(p: any): SpotifyPlaylist {
   return {
@@ -15,6 +26,7 @@ function mapPlaylist(p: any): SpotifyPlaylist {
     imageUrl: (p.picture_medium ?? p.picture ?? null) as string | null,
     trackCount: (p.nb_tracks ?? 0) as number,
     owner: (p.user?.name ?? p.creator?.name ?? 'Unknown') as string,
+    source: 'deezer',
   };
 }
 
@@ -106,4 +118,22 @@ export async function getPlaylistTracks(playlistId: string, fetchYears = false):
     link: `https://www.deezer.com/track/${r.id}`,
     year: albumYears.get(r.albumId),
   }));
+}
+
+export async function getTrackByIsrc(isrc: string): Promise<Song | null> {
+  try {
+    const response = await deezer.get(`/track/isrc:${isrc}`);
+    const data = response.data;
+    if (!data.preview || data.error) return null;
+    return {
+      id: String(data.id),
+      title: data.title as string,
+      artists: [data.artist.name as string],
+      albumArt: (data.album?.cover_medium ?? null) as string | null,
+      previewUrl: data.preview as string,
+      link: `https://www.deezer.com/track/${data.id}`,
+    };
+  } catch {
+    return null;
+  }
 }

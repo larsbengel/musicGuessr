@@ -11,6 +11,7 @@ export interface SpotifyPlaylist {
   imageUrl: string | null;
   trackCount: number;
   owner: string;
+  source: 'deezer' | 'spotify';
   playableCount?: number; // resolved async after adding to lobby
 }
 

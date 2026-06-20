@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -6,6 +7,7 @@ import path from 'path';
 import rateLimit from 'express-rate-limit';
 import lobbyRoutes from './routes/lobby';
 import deezerRoutes from './routes/deezer';
+import spotifyRoutes from './routes/spotify';
 import { setupSocketHandlers } from './socket';
 
 const app = express();
@@ -25,7 +27,7 @@ if (!isProd) {
 
 app.use(express.json());
 
-const deezerLimiter = rateLimit({
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
   standardHeaders: true,
@@ -33,7 +35,8 @@ const deezerLimiter = rateLimit({
 });
 
 app.use('/api/lobby', lobbyRoutes);
-app.use('/api/deezer', deezerLimiter, deezerRoutes);
+app.use('/api/deezer', apiLimiter, deezerRoutes);
+app.use('/api/spotify', apiLimiter, spotifyRoutes);
 
 setupSocketHandlers(io);
 

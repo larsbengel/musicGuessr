@@ -1,6 +1,7 @@
-import { Song } from '../../../shared/types';
+import { Song, SpotifyPlaylist } from '../../../shared/types';
 import { LobbyState } from '../state/lobbyStore';
-import { getPlaylistTracks } from './deezer';
+import { getPlaylistTracks, getTrackByIsrc } from './deezer';
+import { getPlaylistTracks as getSpotifyPlaylistTracks, SpotifyTrackInfo } from './spotify';
 
 function normalize(s: string): string {
   return s
@@ -115,11 +116,51 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+async function buildSpotifyPool(
+  playlist: SpotifyPlaylist,
+  spotifyTracks: SpotifyTrackInfo[],
+  targetCount: number,
+  fetchYears: boolean
+): Promise<Song[]> {
+  const shuffled = shuffle([...spotifyTracks]);
+  const songs: Song[] = [];
+  // Try all available tracks in batches — ISRC hit rate on Deezer is unpredictable,
+  // so we can't cap attempts at a small multiple of targetCount.
+  const BATCH = 5;
+
+  for (let i = 0; i < shuffled.length && songs.length < targetCount; i += BATCH) {
+    const batch = shuffled.slice(i, Math.min(i + BATCH, shuffled.length));
+    const results = await Promise.all(
+      batch.map(async (t) => {
+        if (!t.isrc) return null;
+        const song = await getTrackByIsrc(t.isrc);
+        if (!song) return null;
+        return {
+          ...song,
+          // Spotify provides the year directly — no extra album API call needed
+          year: fetchYears ? t.year : undefined,
+          playlistName: playlist.name,
+        };
+      })
+    );
+    for (const song of results) {
+      if (song) songs.push(song);
+    }
+  }
+  return songs;
+}
+
 export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
-  // Fetch and shuffle each playlist independently
   const fetchYears = lobby.settings.guessMode.year;
+  const perPlaylist = Math.ceil(lobby.settings.songCount * 1.5 / Math.max(lobby.playlists.length, 1));
+
   const pools: Song[][] = await Promise.all(
     lobby.playlists.map(async (pl) => {
+      if (pl.source === 'spotify') {
+        // Use cached Spotify tracks; fall back to fetching if cache was lost (e.g. server restart)
+        const spotifyTracks = lobby.spotifyTracks.get(pl.id) ?? await getSpotifyPlaylistTracks(pl.id);
+        return buildSpotifyPool(pl, spotifyTracks, perPlaylist, fetchYears);
+      }
       const tracks = await getPlaylistTracks(pl.id, fetchYears);
       return shuffle(tracks.map((t) => ({ ...t, playlistName: pl.name })));
     })
@@ -131,24 +172,23 @@ export async function buildSongQueue(lobby: LobbyState): Promise<Song[]> {
   const queue: Song[] = [];
   const indices = new Array(pools.length).fill(0);
 
-  const rounds = Math.ceil(lobby.settings.songCount / Math.max(pools.length, 1)) + 1;
-  const deckOrder: number[] = [];
-  for (let r = 0; r < rounds; r++) {
-    deckOrder.push(...shuffle(pools.map((_, i) => i)));
-  }
-
-  for (const playlistIndex of deckOrder) {
-    if (queue.length >= lobby.settings.songCount) break;
-    const pool = pools[playlistIndex];
-    while (indices[playlistIndex] < pool.length) {
-      const track = pool[indices[playlistIndex]++];
-      if (!seen.has(track.id)) {
-        seen.add(track.id);
-        queue.push(track);
-        break;
+  while (queue.length < lobby.settings.songCount) {
+    const playlistOrder = shuffle(pools.map((_, i) => i));
+    let anyAdded = false;
+    for (const playlistIndex of playlistOrder) {
+      if (queue.length >= lobby.settings.songCount) break;
+      const pool = pools[playlistIndex];
+      while (indices[playlistIndex] < pool.length) {
+        const track = pool[indices[playlistIndex]++];
+        if (!seen.has(track.id)) {
+          seen.add(track.id);
+          queue.push(track);
+          anyAdded = true;
+          break;
+        }
       }
     }
-    if (pools.every((p, i) => indices[i] >= p.length)) break;
+    if (!anyAdded) break; // all pools exhausted
   }
 
   return queue;
